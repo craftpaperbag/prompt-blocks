@@ -210,6 +210,7 @@ export default function PromptBuilder() {
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <div style={{ width: 28, height: 28, borderRadius: 7, background: `${C.accent}18`, display: "flex", alignItems: "center", justifyContent: "center" }}><Layers size={16} color={C.accent} /></div>
           <span style={{ fontSize: isMobile ? 14 : 16, fontWeight: 700, letterSpacing: "-0.02em" }}>Prompt Blocks</span>
+          <span style={{ fontSize: 9, color: C.dim, background: `${C.accent}15`, padding: "2px 6px", borderRadius: 4, fontWeight: 600 }}>モック版</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <button onClick={() => setShowSaved(true)} style={gb}><Save size={14} />{savedPrompts.length > 0 && <span style={{ fontSize: 10, color: C.dim }}>{savedPrompts.length}</span>}</button>
@@ -232,7 +233,7 @@ export default function PromptBuilder() {
               {canvas.length > 0 && hasVars && (
                 <button onClick={() => setVarMode(!varMode)} style={{ ...gb, color: varMode ? C.bg : C.accent, background: varMode ? C.accent : "transparent", borderRadius: 6, padding: "4px 10px", gap: 4 }}>
                   {varMode ? <ToggleRight size={14} /> : <ToggleLeft size={14} />}
-                  <span style={{ fontSize: 11 }}>変数</span>
+                  <span style={{ fontSize: 11 }}>穴埋め</span>
                   {filledCount > 0 && <span style={{ fontSize: 9, opacity: 0.7 }}>{filledCount}/{allVars.length}</span>}
                 </button>
               )}
@@ -293,7 +294,7 @@ export default function PromptBuilder() {
               {varMode && canvas.length > 0 && (
                 <div style={{ width: isMobile ? "100%" : 260, maxHeight: isMobile ? "34vh" : undefined, flex: isMobile ? "0 0 auto" : "0 0 260px", background: C.surface, borderLeft: isMobile ? "none" : `1px solid ${C.border}`, borderTop: isMobile ? `1px solid ${C.border}` : "none", display: "flex", flexDirection: "column", overflow: "hidden" }}>
                   <div style={{ padding: "9px 14px", borderBottom: `1px solid ${C.border}`, flexShrink: 0, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 5 }}><ToggleRight size={14} color={C.accent} /> 変数を入力</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 5 }}><ToggleRight size={14} color={C.accent} /> 穴埋め入力</span>
                     <span style={{ fontSize: 10, color: filledCount === allVars.length && allVars.length > 0 ? C.green : C.dim, fontWeight: 600 }}>{filledCount === allVars.length && allVars.length > 0 ? "✓ 完了" : `${filledCount}/${allVars.length}`}</span>
                   </div>
                   <div style={{ flex: 1, overflowY: "auto", padding: 12, display: "flex", flexDirection: "column", gap: 12 }}>
@@ -318,7 +319,7 @@ export default function PromptBuilder() {
 
             {canvas.length > 0 && !varMode && (
               <div style={{ padding: "5px 14px", borderTop: `1px solid ${C.border}`, background: C.surface, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ fontSize: 10, color: C.dim, display: "flex", alignItems: "center", gap: 4 }}><Layers size={11} /> {canvas.length}ブロック{hasVars ? ` · ${allVars.length}変数` : ""}</span>
+                <span style={{ fontSize: 10, color: C.dim, display: "flex", alignItems: "center", gap: 4 }}><Layers size={11} /> {canvas.length}ブロック{hasVars ? ` · ${allVars.length}箇所の穴埋め` : ""}</span>
                 <button onClick={copyOutput} style={gb}>{copied ? <><Check size={12} color={C.green} /><span style={{ fontSize: 10 }}>コピー済み</span></> : <><Clipboard size={12} /><span style={{ fontSize: 10 }}>コピー</span></>}</button>
               </div>
             )}
@@ -328,14 +329,14 @@ export default function PromptBuilder() {
         {/* BLOCK SELECTOR */}
         {(!isMobile || mobileView === "build") && !varMode && (
           <div style={{ width: isMobile ? "100%" : 320, flex: isMobile ? "0 0 auto" : "0 0 320px", maxHeight: isMobile ? "42vh" : undefined, background: C.surface, borderTop: isMobile ? `1px solid ${C.border}` : "none", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            <div style={{ display: "flex", borderBottom: `1px solid ${C.border}`, flexShrink: 0, overflowX: "auto", background: C.surface }}>
+            <div style={{ display: "flex", flexWrap: "wrap", borderBottom: `1px solid ${C.border}`, flexShrink: 0, background: C.surface }}>
               {Object.entries(CAT).map(([id, cat]) => {
                 const sel = selectedCat === id;
                 return (
                   <button key={id} onClick={() => setSelectedCat(sel ? null : id)}
-                    style={{ background: sel ? cat.bg : "transparent", border: "none", borderBottom: `2px solid ${sel ? cat.color : "transparent"}`, padding: isMobile ? "7px 8px" : "9px 11px", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, color: sel ? cat.color : C.dim, transition: "all 0.12s", flexShrink: 0 }}>
+                    style={{ background: sel ? cat.bg : "transparent", border: "none", borderBottom: `2px solid ${sel ? cat.color : "transparent"}`, padding: isMobile ? "7px 8px" : "7px 0", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, color: sel ? cat.color : C.dim, transition: "all 0.12s", flex: "1 1 calc(100% / 3)", minWidth: 0 }}>
                     <cat.Icon size={isMobile ? 15 : 16} />
-                    <span style={{ fontSize: 9, fontWeight: 700, whiteSpace: "nowrap" }}>{cat.label}</span>
+                    <span style={{ fontSize: 9, fontWeight: 700 }}>{cat.label}</span>
                   </button>
                 );
               })}
@@ -364,7 +365,7 @@ export default function PromptBuilder() {
                             <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
                               <span style={{ fontSize: 12, fontWeight: 600 }}>{block.label}</span>
                               {isCustom && <span style={{ fontSize: 8, background: C.surface3, color: C.dim, padding: "1px 4px", borderRadius: 3 }}>カスタム</span>}
-                              {bVars.length > 0 && <span style={{ fontSize: 8, color: C.accent, opacity: 0.7 }}>{bVars.length}変数</span>}
+                              {bVars.length > 0 && <span style={{ fontSize: 8, color: C.accent, opacity: 0.7 }}>{bVars.length}箇所</span>}
                             </div>
                             {!isMobile && <div style={{ fontSize: 10, color: C.dim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginTop: 1 }}>{block.content.slice(0, 50)}</div>}
                           </div>
@@ -407,7 +408,7 @@ export default function PromptBuilder() {
 
       {isMobile && (
         <div style={{ flexShrink: 0, background: C.surface, borderTop: `1px solid ${C.border}`, display: "flex", padding: "5px 0 env(safe-area-inset-bottom, 5px)" }}>
-          {[{ key: "build", Ic: Layers, label: "ビルド" }, { key: "saved", Ic: Save, label: "保存済み" }].map(t => (
+          {[{ key: "build", Ic: Layers, label: "つくる" }, { key: "saved", Ic: Save, label: "保存済み" }].map(t => (
             <button key={t.key} onClick={() => setMobileView(t.key)} style={{ flex: 1, background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 2, color: mobileView === t.key ? C.accent : C.dim, padding: "3px 0" }}>
               <t.Ic size={16} /><span style={{ fontSize: 9, fontWeight: 600 }}>{t.label}</span>
             </button>
@@ -445,8 +446,8 @@ export default function PromptBuilder() {
                   <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>「{cat.label}」にブロック追加</h2>
                 </div>
                 <input value={newBlockData.label} onChange={e => setNewBlockData({ ...newBlockData, label: e.target.value })} placeholder="ブロック名" style={{ ...inp, marginBottom: 8 }} autoFocus />
-                <textarea value={newBlockData.content} onChange={e => setNewBlockData({ ...newBlockData, content: e.target.value })} placeholder={"テンプレートを入力\n{変数名}で変数を定義"} style={{ ...inp, minHeight: 100, resize: "vertical", fontFamily: "monospace", fontSize: 11 }} />
-                <p style={{ fontSize: 10, color: C.dim, margin: "8px 0 0" }}>{"{"}変数名{"}"} → あとから値を流し込めます</p>
+                <textarea value={newBlockData.content} onChange={e => setNewBlockData({ ...newBlockData, content: e.target.value })} placeholder={"テンプレートを入力\n{項目名}で穴埋め箇所を作れます"} style={{ ...inp, minHeight: 100, resize: "vertical", fontFamily: "monospace", fontSize: 11 }} />
+                <p style={{ fontSize: 10, color: C.dim, margin: "8px 0 0" }}>{"{"}項目名{"}"} → あとから入力できます</p>
                 <button onClick={addCustomBlock} style={{ ...pb, background: cat.color }} disabled={!newBlockData.label || !newBlockData.content}>保存</button>
               </>
             ); })()}
