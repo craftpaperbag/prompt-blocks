@@ -184,7 +184,7 @@ export default function PromptBuilder() {
   const copyOutput = () => { navigator.clipboard?.writeText(getFilledOutput()); setCopied(true); setTimeout(() => setCopied(false), 2000); };
 
   const savePrompt = async () => { if (!user) { setAuthScreen(true); return; } if (!canvas.length) return; const nm = currentName.trim() || `プロンプト ${savedPrompts.length + 1}`; const p = { id: uid(), name: nm, blocks: canvas.map(({ instanceId, ...r }) => r), createdAt: Date.now() }; const nx = [p, ...savedPrompts]; setSavedPrompts(nx); await persist(userBlocks, nx); setCurrentName(""); showToast("保存しました"); };
-  const loadPrompt = (p) => { setCanvas(p.blocks.map(b => ({ ...b, instanceId: uid() }))); setCurrentName(p.name); setShowSaved(false); setVarMode(false); setVarValues({}); if (isMobile) setMobileView("build"); showToast("読み込みました"); };
+  const loadPrompt = (p) => { setCanvas(p.blocks.map(b => ({ ...b, instanceId: uid(), theme: CAT[b.catId] || CAT.technique }))); setCurrentName(p.name); setShowSaved(false); setVarMode(false); setVarValues({}); if (isMobile) setMobileView("build"); showToast("読み込みました"); };
   const deletePrompt = async (id) => { const nx = savedPrompts.filter(p => p.id !== id); setSavedPrompts(nx); await persist(userBlocks, nx); };
   const addCustomBlock = async () => { if (!newBlockData.label || !newBlockData.content || !newBlockCat) return; const b = { id: `u-${uid()}`, label: newBlockData.label, content: newBlockData.content }; const nx = { ...userBlocks, [newBlockCat]: [...(userBlocks[newBlockCat] || []), b] }; setUserBlocks(nx); if (user) await persist(nx, savedPrompts); setNewBlockData({ label: "", content: "" }); setShowNewBlock(false); showToast("ブロック保存しました"); };
   const deleteCustomBlock = async (catId, bId) => { const nx = { ...userBlocks, [catId]: (userBlocks[catId] || []).filter(b => b.id !== bId) }; setUserBlocks(nx); if (user) await persist(nx, savedPrompts); };
@@ -253,7 +253,7 @@ export default function PromptBuilder() {
                   <>
                     {canvas.map((block, idx) => {
                       const isEd = editingBlock === block.instanceId;
-                      const th = block.theme || CAT.technique;
+                      const th = (block.theme?.Icon ? block.theme : null) || CAT[block.catId] || CAT.technique;
                       const isDragging = dragIdx === idx || (touchDragState?.moved && touchDragState?.idx === idx);
                       const CatIc = th.Icon;
                       return (
