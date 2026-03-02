@@ -7,7 +7,7 @@ import {
   Shield, Volume2, Hash, Globe, Ban, Users, Award,
   Zap, GitBranch, Repeat, UserCheck, Layers, Sparkles,
   GripVertical, ChevronUp, ChevronDown, Copy, Trash2, Edit3, Check, Plus, X, Save, LogOut, LogIn, Clipboard,
-  ToggleLeft, ToggleRight, MessageCircle, Settings,
+  ToggleLeft, ToggleRight, MessageCircle, Settings, ExternalLink,
 } from "lucide-react";
 
 const ST = {
@@ -130,6 +130,7 @@ export default function PromptBuilder() {
   const [varValues, setVarValues] = useState({});
   const [dragIdx, setDragIdx] = useState(null);
   const [touchDragState, setTouchDragState] = useState(null);
+  const [showInfo, setShowInfo] = useState(false);
   const blockRefs = useRef([]);
   const canvasEndRef = useRef(null);
 
@@ -198,28 +199,29 @@ export default function PromptBuilder() {
     return <span key={i}>{part}</span>;
   });
 
-  const GetIcon = ({ id, size = 14, color }) => { const Ic = BI[id] || Sparkles; return <Ic size={size} color={color} />; };
+  const GetIcon = ({ id, size = 17, color }) => { const Ic = BI[id] || Sparkles; return <Ic size={size} color={color} />; };
 
   return (
     <div style={{ height: "100vh", display: "flex", flexDirection: "column", background: C.bg, color: C.text, fontFamily: "'Inter',-apple-system,'Noto Sans JP',sans-serif", overflow: "hidden" }}
     onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
 
-      {toast && <div style={{ position: "fixed", top: 12, left: "50%", transform: "translateX(-50%)", zIndex: 9999, padding: "7px 18px", borderRadius: 8, background: C.green, color: C.bg, fontSize: 12, fontWeight: 700, boxShadow: "0 6px 24px rgba(0,0,0,0.5)", animation: "slideDown 0.25s ease" }}>{toast}</div>}
+      {toast && <div style={{ position: "fixed", top: 16, left: "50%", transform: "translateX(-50%)", zIndex: 9999, padding: "10px 24px", borderRadius: 10, background: C.green, color: C.bg, fontSize: 15, fontWeight: 700, boxShadow: "0 6px 24px rgba(0,0,0,0.5)", animation: "slideDown 0.25s ease" }}>{toast}</div>}
 
-      <header style={{ zIndex: 100, background: C.surface, borderBottom: `1px solid ${C.border}`, padding: isMobile ? "8px 12px" : "8px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ width: 28, height: 28, borderRadius: 7, background: `${C.accent}18`, display: "flex", alignItems: "center", justifyContent: "center" }}><Layers size={16} color={C.accent} /></div>
-          <span style={{ fontSize: isMobile ? 14 : 16, fontWeight: 700, letterSpacing: "-0.02em" }}>Prompt Blocks</span>
-          <span style={{ fontSize: 9, color: C.dim, background: `${C.accent}15`, padding: "2px 6px", borderRadius: 4, fontWeight: 600 }}>モック版</span>
+      <header style={{ zIndex: 100, background: C.surface, borderBottom: `1px solid ${C.border}`, padding: isMobile ? "10px 14px" : "12px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 9, background: `${C.accent}18`, display: "flex", alignItems: "center", justifyContent: "center" }}><Layers size={20} color={C.accent} /></div>
+          <span style={{ fontSize: isMobile ? 18 : 20, fontWeight: 700, letterSpacing: "-0.02em" }}>Prompt Blocks</span>
+          <span style={{ fontSize: 11, color: C.dim, background: `${C.accent}15`, padding: "3px 8px", borderRadius: 5, fontWeight: 600 }}>モック版</span>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <button onClick={() => setShowSaved(true)} style={gb}><Save size={14} />{savedPrompts.length > 0 && <span style={{ fontSize: 10, color: C.dim }}>{savedPrompts.length}</span>}</button>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <button onClick={() => setShowInfo(true)} style={gb} title="このサービスについて"><Info size={18} /></button>
+          <button onClick={() => setShowSaved(true)} style={gb}><Save size={17} />{savedPrompts.length > 0 && <span style={{ fontSize: 13, color: C.dim }}>{savedPrompts.length}</span>}</button>
           {user ? (
             <>
-              {!isMobile && <span style={{ fontSize: 10, color: C.dim, maxWidth: 110, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.email}</span>}
-              <button onClick={handleLogout} style={gb}><LogOut size={13} /></button>
+              {!isMobile && <span style={{ fontSize: 13, color: C.dim, maxWidth: 130, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.email}</span>}
+              <button onClick={handleLogout} style={gb}><LogOut size={17} /></button>
             </>
-          ) : <button onClick={() => setAuthScreen(true)} style={{ ...gb, color: C.accent }}><LogIn size={13} /><span style={{ fontSize: 11 }}>ログイン</span></button>}
+          ) : <button onClick={() => setAuthScreen(true)} style={{ ...gb, color: C.accent }}><LogIn size={17} /><span style={{ fontSize: 14 }}>ログイン</span></button>}
         </div>
       </header>
 
@@ -227,27 +229,27 @@ export default function PromptBuilder() {
         {/* CANVAS */}
         {(!isMobile || mobileView === "build") && (
           <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, borderRight: isMobile ? "none" : `1px solid ${C.border}` }}>
-            <div style={{ padding: isMobile ? "6px 10px" : "8px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", gap: 5, alignItems: "center", background: C.surface, flexShrink: 0, overflowX: "auto" }}>
-              <input value={currentName} onChange={e => setCurrentName(e.target.value)} placeholder="プロンプト名..." style={{ ...inp, flex: 1, minWidth: 60, maxWidth: isMobile ? 110 : 160, padding: "5px 8px" }} />
-              <button onClick={savePrompt} style={gb} disabled={!canvas.length}><Save size={14} /></button>
+            <div style={{ padding: isMobile ? "8px 12px" : "10px 18px", borderBottom: `1px solid ${C.border}`, display: "flex", gap: 8, alignItems: "center", background: C.surface, flexShrink: 0, overflowX: "auto" }}>
+              <input value={currentName} onChange={e => setCurrentName(e.target.value)} placeholder="プロンプト名..." style={{ ...inp, flex: 1, minWidth: 80, maxWidth: isMobile ? 140 : 200, padding: "8px 12px" }} />
+              <button onClick={savePrompt} style={gb} disabled={!canvas.length}><Save size={17} /></button>
               {canvas.length > 0 && hasVars && (
-                <button onClick={() => setVarMode(!varMode)} style={{ ...gb, color: varMode ? C.bg : C.accent, background: varMode ? C.accent : "transparent", borderRadius: 6, padding: "4px 10px", gap: 4 }}>
-                  {varMode ? <ToggleRight size={14} /> : <ToggleLeft size={14} />}
-                  <span style={{ fontSize: 11 }}>穴埋め</span>
-                  {filledCount > 0 && <span style={{ fontSize: 9, opacity: 0.7 }}>{filledCount}/{allVars.length}</span>}
+                <button onClick={() => setVarMode(!varMode)} style={{ ...gb, color: varMode ? C.bg : C.accent, background: varMode ? C.accent : "transparent", borderRadius: 8, padding: "6px 14px", gap: 6 }}>
+                  {varMode ? <ToggleRight size={17} /> : <ToggleLeft size={17} />}
+                  <span style={{ fontSize: 14 }}>穴埋め</span>
+                  {filledCount > 0 && <span style={{ fontSize: 12, opacity: 0.7 }}>{filledCount}/{allVars.length}</span>}
                 </button>
               )}
-              <button onClick={copyOutput} style={gb} disabled={!canvas.length}>{copied ? <Check size={14} color={C.green} /> : <Clipboard size={14} />}</button>
-              <button onClick={() => { setCanvas([]); setVarMode(false); setVarValues({}); }} style={gb} disabled={!canvas.length}><Trash2 size={13} /></button>
+              <button onClick={copyOutput} style={gb} disabled={!canvas.length}>{copied ? <Check size={17} color={C.green} /> : <Clipboard size={17} />}</button>
+              <button onClick={() => { setCanvas([]); setVarMode(false); setVarValues({}); }} style={gb} disabled={!canvas.length}><Trash2 size={16} /></button>
             </div>
 
             <div style={{ flex: 1, display: "flex", flexDirection: varMode && !isMobile ? "row" : "column", overflow: "hidden" }}>
-              <div style={{ flex: 1, overflowY: "auto", padding: isMobile ? 8 : 14, display: "flex", flexDirection: "column", gap: 5, minHeight: 0 }}>
+              <div style={{ flex: 1, overflowY: "auto", padding: isMobile ? 10 : 16, display: "flex", flexDirection: "column", gap: 8, minHeight: 0 }}>
                 {!canvas.length ? (
-                  <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", border: `2px dashed ${C.border}`, borderRadius: 12, padding: 24 }}>
-                    <Layers size={32} color={C.dim} strokeWidth={1.5} />
-                    <p style={{ fontSize: 13, fontWeight: 600, margin: "10px 0 2px", color: C.dim }}>キャンバス</p>
-                    <p style={{ fontSize: 11, color: C.dim, textAlign: "center", opacity: 0.7 }}>{isMobile ? "↓ カテゴリ → ブロックで積み上げ" : "→ カテゴリ → ブロックで積み上げ"}</p>
+                  <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", border: `2px dashed ${C.border}`, borderRadius: 14, padding: 32 }}>
+                    <Layers size={40} color={C.dim} strokeWidth={1.5} />
+                    <p style={{ fontSize: 16, fontWeight: 600, margin: "12px 0 4px", color: C.dim }}>キャンバス</p>
+                    <p style={{ fontSize: 14, color: C.dim, textAlign: "center", opacity: 0.7 }}>{isMobile ? "下のカテゴリからブロックを選んで積み上げ" : "右のカテゴリからブロックを選んで積み上げ"}</p>
                   </div>
                 ) : (
                   <>
@@ -259,27 +261,27 @@ export default function PromptBuilder() {
                       return (
                         <div key={block.instanceId} ref={el => blockRefs.current[idx] = el}
                           draggable={!isEd && !isMobile} onDragStart={() => handleDragStart(idx)} onDragOver={e => handleDragOver(e, idx)} onDragEnd={handleDragEnd}
-                          style={{ background: C.surface2, border: `1px solid ${isDragging ? th.color : C.border}`, borderLeft: `3px solid ${th.color}`, borderRadius: 8, overflow: "hidden", opacity: isDragging ? 0.65 : 1, animation: canvasFlash === block.instanceId ? "blockFlash 0.5s ease" : undefined, flexShrink: 0, transition: "opacity 0.15s, border-color 0.15s", transform: isDragging ? "scale(1.02)" : "none" }}>
-                          <div style={{ display: "flex", alignItems: "center", padding: "5px 8px", gap: 5 }}>
-                            <span onTouchStart={e => onTouchStart(idx, e)} style={{ cursor: "grab", opacity: 0.35, touchAction: "none", display: "flex", padding: 2 }}><GripVertical size={14} /></span>
-                            <span style={{ color: th.color, display: "flex" }}><CatIc size={12} /></span>
-                            <span style={{ fontSize: 10, color: C.dim }}>{block.catLabel}</span>
-                            <span style={{ fontSize: 9, color: C.dim, opacity: 0.5 }}>›</span>
-                            <span style={{ fontSize: 11, fontWeight: 600, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{block.label}</span>
+                          style={{ background: C.surface2, border: `1px solid ${isDragging ? th.color : C.border}`, borderLeft: `4px solid ${th.color}`, borderRadius: 10, overflow: "hidden", opacity: isDragging ? 0.65 : 1, animation: canvasFlash === block.instanceId ? "blockFlash 0.5s ease" : undefined, flexShrink: 0, transition: "opacity 0.15s, border-color 0.15s", transform: isDragging ? "scale(1.02)" : "none" }}>
+                          <div style={{ display: "flex", alignItems: "center", padding: "8px 12px", gap: 8 }}>
+                            <span onTouchStart={e => onTouchStart(idx, e)} style={{ cursor: "grab", opacity: 0.35, touchAction: "none", display: "flex", padding: 3 }}><GripVertical size={17} /></span>
+                            <span style={{ color: th.color, display: "flex" }}><CatIc size={15} /></span>
+                            <span style={{ fontSize: 13, color: C.dim }}>{block.catLabel}</span>
+                            <span style={{ fontSize: 12, color: C.dim, opacity: 0.5 }}>›</span>
+                            <span style={{ fontSize: 14, fontWeight: 600, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{block.label}</span>
                             {!varMode && (
-                              <div style={{ display: "flex", gap: 1 }}>
-                                {idx > 0 && <button onClick={() => moveBlock(idx, idx - 1)} style={tb}><ChevronUp size={12} /></button>}
-                                {idx < canvas.length - 1 && <button onClick={() => moveBlock(idx, idx + 1)} style={tb}><ChevronDown size={12} /></button>}
-                                <button onClick={() => isEd ? saveEdit(block.instanceId) : startEdit(block)} style={tb}>{isEd ? <Check size={12} /> : <Edit3 size={12} />}</button>
-                                <button onClick={() => dupBlock(block.instanceId)} style={tb}><Copy size={12} /></button>
-                                <button onClick={() => removeFromCanvas(block.instanceId)} style={{ ...tb, color: C.red }}><X size={12} /></button>
+                              <div style={{ display: "flex", gap: 2 }}>
+                                {idx > 0 && <button onClick={() => moveBlock(idx, idx - 1)} style={tb}><ChevronUp size={16} /></button>}
+                                {idx < canvas.length - 1 && <button onClick={() => moveBlock(idx, idx + 1)} style={tb}><ChevronDown size={16} /></button>}
+                                <button onClick={() => isEd ? saveEdit(block.instanceId) : startEdit(block)} style={tb}>{isEd ? <Check size={16} /> : <Edit3 size={16} />}</button>
+                                <button onClick={() => dupBlock(block.instanceId)} style={tb}><Copy size={16} /></button>
+                                <button onClick={() => removeFromCanvas(block.instanceId)} style={{ ...tb, color: C.red }}><X size={16} /></button>
                               </div>
                             )}
                           </div>
                           {isEd ? (
-                            <textarea value={editContent} onChange={e => setEditContent(e.target.value)} style={{ width: "100%", background: C.bg, border: "none", color: C.text, padding: 8, fontSize: 11, fontFamily: "monospace", minHeight: 60, resize: "vertical", outline: "none", boxSizing: "border-box", lineHeight: 1.5 }} autoFocus />
+                            <textarea value={editContent} onChange={e => setEditContent(e.target.value)} style={{ width: "100%", background: C.bg, border: "none", color: C.text, padding: 12, fontSize: 14, fontFamily: "monospace", minHeight: 80, resize: "vertical", outline: "none", boxSizing: "border-box", lineHeight: 1.6 }} autoFocus />
                           ) : (
-                            <div onClick={() => !varMode && startEdit(block)} style={{ padding: "4px 8px 6px", fontSize: 11, lineHeight: 1.45, color: C.dim, whiteSpace: "pre-wrap", cursor: varMode ? "default" : "text", fontFamily: "monospace" }}>
+                            <div onClick={() => !varMode && startEdit(block)} style={{ padding: "6px 12px 10px", fontSize: 14, lineHeight: 1.6, color: C.dim, whiteSpace: "pre-wrap", cursor: varMode ? "default" : "text", fontFamily: "monospace" }}>
                               {varMode ? renderContent(block.content) : block.content}
                             </div>
                           )}
@@ -292,25 +294,25 @@ export default function PromptBuilder() {
               </div>
 
               {varMode && canvas.length > 0 && (
-                <div style={{ width: isMobile ? "100%" : 260, maxHeight: isMobile ? "34vh" : undefined, flex: isMobile ? "0 0 auto" : "0 0 260px", background: C.surface, borderLeft: isMobile ? "none" : `1px solid ${C.border}`, borderTop: isMobile ? `1px solid ${C.border}` : "none", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-                  <div style={{ padding: "9px 14px", borderBottom: `1px solid ${C.border}`, flexShrink: 0, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 5 }}><ToggleRight size={14} color={C.accent} /> 穴埋め入力</span>
-                    <span style={{ fontSize: 10, color: filledCount === allVars.length && allVars.length > 0 ? C.green : C.dim, fontWeight: 600 }}>{filledCount === allVars.length && allVars.length > 0 ? "✓ 完了" : `${filledCount}/${allVars.length}`}</span>
+                <div style={{ width: isMobile ? "100%" : 300, maxHeight: isMobile ? "34vh" : undefined, flex: isMobile ? "0 0 auto" : "0 0 300px", background: C.surface, borderLeft: isMobile ? "none" : `1px solid ${C.border}`, borderTop: isMobile ? `1px solid ${C.border}` : "none", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+                  <div style={{ padding: "12px 18px", borderBottom: `1px solid ${C.border}`, flexShrink: 0, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: 15, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}><ToggleRight size={17} color={C.accent} /> 穴埋め入力</span>
+                    <span style={{ fontSize: 13, color: filledCount === allVars.length && allVars.length > 0 ? C.green : C.dim, fontWeight: 600 }}>{filledCount === allVars.length && allVars.length > 0 ? "完了" : `${filledCount}/${allVars.length}`}</span>
                   </div>
-                  <div style={{ flex: 1, overflowY: "auto", padding: 12, display: "flex", flexDirection: "column", gap: 12 }}>
+                  <div style={{ flex: 1, overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 16 }}>
                     {allVars.map((v, i) => {
                       const filled = !!varValues[v.name]?.trim();
                       return (
                         <div key={v.name}>
-                          <label style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 4, fontSize: 11, fontWeight: 600, color: filled ? C.green : C.text }}>{v.name}{filled && <Check size={10} color={C.green} />}</label>
-                          <input value={varValues[v.name] || ""} onChange={e => setVarValues(p => ({ ...p, [v.name]: e.target.value }))} placeholder={`${v.name}...`} style={{ ...inp, borderColor: filled ? `${C.green}40` : C.border, fontSize: 12, padding: "6px 8px" }} autoFocus={i === 0} />
+                          <label style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6, fontSize: 14, fontWeight: 600, color: filled ? C.green : C.text }}>{v.name}{filled && <Check size={14} color={C.green} />}</label>
+                          <input value={varValues[v.name] || ""} onChange={e => setVarValues(p => ({ ...p, [v.name]: e.target.value }))} placeholder={`${v.name}...`} style={{ ...inp, borderColor: filled ? `${C.green}40` : C.border, fontSize: 14, padding: "8px 12px" }} autoFocus={i === 0} />
                         </div>
                       );
                     })}
                   </div>
-                  <div style={{ padding: "8px 12px", borderTop: `1px solid ${C.border}`, flexShrink: 0 }}>
-                    <button onClick={copyOutput} style={{ background: C.accent, color: C.bg, border: "none", borderRadius: 7, padding: "8px 0", width: "100%", fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 5, fontFamily: "inherit" }}>
-                      {copied ? <><Check size={14} /> コピー済み</> : <><Clipboard size={14} /> 完成プロンプトをコピー</>}
+                  <div style={{ padding: "10px 16px", borderTop: `1px solid ${C.border}`, flexShrink: 0 }}>
+                    <button onClick={copyOutput} style={{ background: C.accent, color: C.bg, border: "none", borderRadius: 8, padding: "10px 0", width: "100%", fontSize: 15, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontFamily: "inherit" }}>
+                      {copied ? <><Check size={17} /> コピー済み</> : <><Clipboard size={17} /> 完成プロンプトをコピー</>}
                     </button>
                   </div>
                 </div>
@@ -318,9 +320,9 @@ export default function PromptBuilder() {
             </div>
 
             {canvas.length > 0 && !varMode && (
-              <div style={{ padding: "5px 14px", borderTop: `1px solid ${C.border}`, background: C.surface, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ fontSize: 10, color: C.dim, display: "flex", alignItems: "center", gap: 4 }}><Layers size={11} /> {canvas.length}ブロック{hasVars ? ` · ${allVars.length}箇所の穴埋め` : ""}</span>
-                <button onClick={copyOutput} style={gb}>{copied ? <><Check size={12} color={C.green} /><span style={{ fontSize: 10 }}>コピー済み</span></> : <><Clipboard size={12} /><span style={{ fontSize: 10 }}>コピー</span></>}</button>
+              <div style={{ padding: "8px 18px", borderTop: `1px solid ${C.border}`, background: C.surface, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span style={{ fontSize: 13, color: C.dim, display: "flex", alignItems: "center", gap: 6 }}><Layers size={14} /> {canvas.length}ブロック{hasVars ? ` · ${allVars.length}箇所の穴埋め` : ""}</span>
+                <button onClick={copyOutput} style={gb}>{copied ? <><Check size={15} color={C.green} /><span style={{ fontSize: 13 }}>コピー済み</span></> : <><Clipboard size={15} /><span style={{ fontSize: 13 }}>コピー</span></>}</button>
               </div>
             )}
           </div>
@@ -328,55 +330,55 @@ export default function PromptBuilder() {
 
         {/* BLOCK SELECTOR */}
         {(!isMobile || mobileView === "build") && !varMode && (
-          <div style={{ width: isMobile ? "100%" : 320, flex: isMobile ? "0 0 auto" : "0 0 320px", maxHeight: isMobile ? "42vh" : undefined, background: C.surface, borderTop: isMobile ? `1px solid ${C.border}` : "none", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <div style={{ width: isMobile ? "100%" : 360, flex: isMobile ? "0 0 auto" : "0 0 360px", maxHeight: isMobile ? "42vh" : undefined, background: C.surface, borderTop: isMobile ? `1px solid ${C.border}` : "none", display: "flex", flexDirection: "column", overflow: "hidden" }}>
             <div style={{ display: "flex", flexWrap: "wrap", borderBottom: `1px solid ${C.border}`, flexShrink: 0, background: C.surface }}>
               {Object.entries(CAT).map(([id, cat]) => {
                 const sel = selectedCat === id;
                 return (
                   <button key={id} onClick={() => setSelectedCat(sel ? null : id)}
-                    style={{ background: sel ? cat.bg : "transparent", border: "none", borderBottom: `2px solid ${sel ? cat.color : "transparent"}`, padding: isMobile ? "7px 8px" : "7px 0", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, color: sel ? cat.color : C.dim, transition: "all 0.12s", flex: "1 1 calc(100% / 3)", minWidth: 0 }}>
-                    <cat.Icon size={isMobile ? 15 : 16} />
-                    <span style={{ fontSize: 9, fontWeight: 700 }}>{cat.label}</span>
+                    style={{ background: sel ? cat.bg : "transparent", border: "none", borderBottom: `2px solid ${sel ? cat.color : "transparent"}`, padding: isMobile ? "10px 10px" : "10px 0", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, color: sel ? cat.color : C.dim, transition: "all 0.12s", flex: "1 1 calc(100% / 3)", minWidth: 0 }}>
+                    <cat.Icon size={isMobile ? 20 : 22} />
+                    <span style={{ fontSize: 12, fontWeight: 700 }}>{cat.label}</span>
                   </button>
                 );
               })}
             </div>
 
-            <div style={{ flex: 1, overflowY: "auto", padding: 8 }}>
+            <div style={{ flex: 1, overflowY: "auto", padding: 10 }}>
               {!selectedCat ? (
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", padding: 20 }}>
-                  <ChevronUp size={20} color={C.dim} /><p style={{ fontSize: 11, color: C.dim, textAlign: "center", margin: "6px 0 0" }}>カテゴリを選択</p>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", padding: 24 }}>
+                  <ChevronUp size={24} color={C.dim} /><p style={{ fontSize: 14, color: C.dim, textAlign: "center", margin: "8px 0 0" }}>カテゴリを選択</p>
                 </div>
               ) : (
                 <>
-                  <p style={{ fontSize: 10, color: selCat.color, padding: "2px 6px 6px", fontWeight: 600, margin: 0 }}>{selCat.desc}</p>
-                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1fr", gap: 5 }}>
+                  <p style={{ fontSize: 13, color: selCat.color, padding: "4px 8px 8px", fontWeight: 600, margin: 0 }}>{selCat.desc}</p>
+                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1fr", gap: 6 }}>
                     {blocksForCat.map(block => {
                       const isCustom = block.id.startsWith("u-");
                       const bVars = extractVars(block.content);
                       return (
                         <button key={block.id} onClick={() => addToCanvas(block, selectedCat)}
-                          style={{ background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 9, padding: isMobile ? "10px" : "9px 11px", cursor: "pointer", display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "flex-start" : "center", gap: isMobile ? 5 : 8, textAlign: "left", color: C.text, transition: "all 0.12s", fontFamily: "inherit", width: "100%" }}
+                          style={{ background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 10, padding: isMobile ? "12px" : "12px 14px", cursor: "pointer", display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "flex-start" : "center", gap: isMobile ? 6 : 10, textAlign: "left", color: C.text, transition: "all 0.12s", fontFamily: "inherit", width: "100%" }}
                           onMouseEnter={e => e.currentTarget.style.borderColor = selCat.color + "66"} onMouseLeave={e => e.currentTarget.style.borderColor = C.border}>
-                          <div style={{ width: 28, height: 28, borderRadius: 7, background: selCat.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, border: `1px solid ${selCat.color}22` }}>
-                            <GetIcon id={block.id} size={14} color={selCat.color} />
+                          <div style={{ width: 36, height: 36, borderRadius: 9, background: selCat.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, border: `1px solid ${selCat.color}22` }}>
+                            <GetIcon id={block.id} size={17} color={selCat.color} />
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
-                              <span style={{ fontSize: 12, fontWeight: 600 }}>{block.label}</span>
-                              {isCustom && <span style={{ fontSize: 8, background: C.surface3, color: C.dim, padding: "1px 4px", borderRadius: 3 }}>カスタム</span>}
-                              {bVars.length > 0 && <span style={{ fontSize: 8, color: C.accent, opacity: 0.7 }}>{bVars.length}箇所</span>}
+                            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                              <span style={{ fontSize: 15, fontWeight: 600 }}>{block.label}</span>
+                              {isCustom && <span style={{ fontSize: 11, background: C.surface3, color: C.dim, padding: "2px 6px", borderRadius: 4 }}>カスタム</span>}
+                              {bVars.length > 0 && <span style={{ fontSize: 11, color: C.accent, opacity: 0.7 }}>{bVars.length}箇所</span>}
                             </div>
-                            {!isMobile && <div style={{ fontSize: 10, color: C.dim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginTop: 1 }}>{block.content.slice(0, 50)}</div>}
+                            {!isMobile && <div style={{ fontSize: 13, color: C.dim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginTop: 2 }}>{block.content.slice(0, 50)}</div>}
                           </div>
-                          {isCustom && <span onClick={e => { e.stopPropagation(); deleteCustomBlock(selectedCat, block.id); }} style={{ color: C.dim, cursor: "pointer", padding: 2, display: "flex" }}><Trash2 size={11} /></span>}
+                          {isCustom && <span onClick={e => { e.stopPropagation(); deleteCustomBlock(selectedCat, block.id); }} style={{ color: C.dim, cursor: "pointer", padding: 4, display: "flex" }}><Trash2 size={15} /></span>}
                         </button>
                       );
                     })}
                     <button onClick={() => { setNewBlockCat(selectedCat); setShowNewBlock(true); }}
-                      style={{ background: "transparent", border: `1px dashed ${C.border}`, borderRadius: 9, padding: 10, cursor: "pointer", color: C.dim, fontSize: 11, fontWeight: 600, fontFamily: "inherit", width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 4, transition: "color 0.12s", gridColumn: isMobile ? "1 / -1" : undefined }}
+                      style={{ background: "transparent", border: `1px dashed ${C.border}`, borderRadius: 10, padding: 14, cursor: "pointer", color: C.dim, fontSize: 14, fontWeight: 600, fontFamily: "inherit", width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, transition: "color 0.12s", gridColumn: isMobile ? "1 / -1" : undefined }}
                       onMouseEnter={e => e.currentTarget.style.color = selCat.color} onMouseLeave={e => e.currentTarget.style.color = C.dim}>
-                      <Plus size={13} /> ブロックを追加
+                      <Plus size={17} /> ブロックを追加
                     </button>
                   </div>
                 </>
@@ -386,31 +388,31 @@ export default function PromptBuilder() {
         )}
 
         {isMobile && mobileView === "saved" && (
-          <div style={{ flex: 1, overflowY: "auto", padding: 12 }}>
-            <h3 style={{ margin: "0 0 12px", fontSize: 14, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}><Save size={16} /> 保存済み</h3>
-            {!user ? <div style={{ textAlign: "center", padding: 30 }}><p style={{ color: C.dim, marginBottom: 12, fontSize: 12 }}>ログインして保存機能を利用</p><button onClick={() => setAuthScreen(true)} style={{ ...gb, color: C.accent }}>ログイン</button></div>
-            : !savedPrompts.length ? <p style={{ color: C.dim, textAlign: "center", padding: 30, fontSize: 12 }}>まだ保存されたプロンプトはありません</p>
-            : <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>{savedPrompts.map(p => <SC key={p.id} p={p} onLoad={loadPrompt} onDelete={deletePrompt} />)}</div>}
+          <div style={{ flex: 1, overflowY: "auto", padding: 16 }}>
+            <h3 style={{ margin: "0 0 14px", fontSize: 18, fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}><Save size={20} /> 保存済み</h3>
+            {!user ? <div style={{ textAlign: "center", padding: 36 }}><p style={{ color: C.dim, marginBottom: 14, fontSize: 15 }}>ログインして保存機能を利用</p><button onClick={() => setAuthScreen(true)} style={{ ...gb, color: C.accent }}>ログイン</button></div>
+            : !savedPrompts.length ? <p style={{ color: C.dim, textAlign: "center", padding: 36, fontSize: 15 }}>まだ保存されたプロンプトはありません</p>
+            : <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{savedPrompts.map(p => <SC key={p.id} p={p} onLoad={loadPrompt} onDelete={deletePrompt} />)}</div>}
           </div>
         )}
       </div>
 
       {showSaved && (
         <div style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)", display: "flex", justifyContent: "flex-end" }} onClick={() => setShowSaved(false)}>
-          <div style={{ width: isMobile ? "88%" : 360, height: "100%", background: C.surface, borderLeft: `1px solid ${C.border}`, overflowY: "auto", padding: 18, boxShadow: "-8px 0 40px rgba(0,0,0,0.4)" }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}><h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}><Save size={16} /> 保存済み</h3><button onClick={() => setShowSaved(false)} style={tb}><X size={16} /></button></div>
-            {!user ? <div style={{ textAlign: "center", padding: 30 }}><p style={{ color: C.dim, marginBottom: 12, fontSize: 12 }}>ログインして保存機能を利用</p><button onClick={() => { setAuthScreen(true); setShowSaved(false); }} style={{ ...gb, color: C.accent }}>ログイン</button></div>
-            : !savedPrompts.length ? <p style={{ color: C.dim, fontSize: 12 }}>まだ保存されたプロンプトはありません</p>
-            : <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>{savedPrompts.map(p => <SC key={p.id} p={p} onLoad={loadPrompt} onDelete={deletePrompt} />)}</div>}
+          <div style={{ width: isMobile ? "88%" : 400, height: "100%", background: C.surface, borderLeft: `1px solid ${C.border}`, overflowY: "auto", padding: 22, boxShadow: "-8px 0 40px rgba(0,0,0,0.4)" }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}><h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}><Save size={20} /> 保存済み</h3><button onClick={() => setShowSaved(false)} style={tb}><X size={20} /></button></div>
+            {!user ? <div style={{ textAlign: "center", padding: 36 }}><p style={{ color: C.dim, marginBottom: 14, fontSize: 15 }}>ログインして保存機能を利用</p><button onClick={() => { setAuthScreen(true); setShowSaved(false); }} style={{ ...gb, color: C.accent }}>ログイン</button></div>
+            : !savedPrompts.length ? <p style={{ color: C.dim, fontSize: 15 }}>まだ保存されたプロンプトはありません</p>
+            : <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{savedPrompts.map(p => <SC key={p.id} p={p} onLoad={loadPrompt} onDelete={deletePrompt} />)}</div>}
           </div>
         </div>
       )}
 
       {isMobile && (
-        <div style={{ flexShrink: 0, background: C.surface, borderTop: `1px solid ${C.border}`, display: "flex", padding: "5px 0 env(safe-area-inset-bottom, 5px)" }}>
+        <div style={{ flexShrink: 0, background: C.surface, borderTop: `1px solid ${C.border}`, display: "flex", padding: "6px 0 env(safe-area-inset-bottom, 6px)" }}>
           {[{ key: "build", Ic: Layers, label: "つくる" }, { key: "saved", Ic: Save, label: "保存済み" }].map(t => (
-            <button key={t.key} onClick={() => setMobileView(t.key)} style={{ flex: 1, background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 2, color: mobileView === t.key ? C.accent : C.dim, padding: "3px 0" }}>
-              <t.Ic size={16} /><span style={{ fontSize: 9, fontWeight: 600 }}>{t.label}</span>
+            <button key={t.key} onClick={() => setMobileView(t.key)} style={{ flex: 1, background: "none", border: "none", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, color: mobileView === t.key ? C.accent : C.dim, padding: "5px 0" }}>
+              <t.Ic size={20} /><span style={{ fontSize: 12, fontWeight: 600 }}>{t.label}</span>
             </button>
           ))}
         </div>
@@ -419,19 +421,19 @@ export default function PromptBuilder() {
       {authScreen && (
         <div style={ov} onClick={() => setAuthScreen(false)}>
           <div style={ml()} onClick={e => e.stopPropagation()}>
-            <h2 style={{ margin: "0 0 8px", fontSize: 16, fontWeight: 700 }}>{authStep === "email" ? "ログイン" : "認証コード"}</h2>
-            <p style={{ margin: "0 0 14px", fontSize: 11, color: C.dim }}>{authStep === "email" ? "メールアドレスを入力" : `${email} に送信されたコード`}</p>
+            <h2 style={{ margin: "0 0 10px", fontSize: 20, fontWeight: 700 }}>{authStep === "email" ? "ログイン" : "認証コード"}</h2>
+            <p style={{ margin: "0 0 16px", fontSize: 14, color: C.dim }}>{authStep === "email" ? "メールアドレスを入力" : `${email} に送信されたコード`}</p>
             {authStep === "email" ? (
               <><input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="your@email.com" style={inp} onKeyDown={e => e.key === "Enter" && handleSendCode()} autoFocus /><button onClick={handleSendCode} style={pb}>認証コードを送信</button></>
             ) : (
               <>
-                <div style={{ background: C.surface3, border: `1px solid ${C.border}`, borderRadius: 7, padding: "8px 12px", marginBottom: 12, fontSize: 11 }}>デモ認証コード: <strong style={{ color: C.accent, fontFamily: "monospace", letterSpacing: 2 }}>{sentCode}</strong><br /><span style={{ fontSize: 9, color: C.dim }}>※ 本番ではメールで送信</span></div>
-                <input type="text" value={verCode} onChange={e => setVerCode(e.target.value)} placeholder="6桁のコード" maxLength={6} style={{ ...inp, textAlign: "center", fontSize: 20, letterSpacing: 8, fontFamily: "monospace" }} onKeyDown={e => e.key === "Enter" && handleVerify()} autoFocus />
+                <div style={{ background: C.surface3, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 14px", marginBottom: 14, fontSize: 14 }}>デモ認証コード: <strong style={{ color: C.accent, fontFamily: "monospace", letterSpacing: 2 }}>{sentCode}</strong><br /><span style={{ fontSize: 12, color: C.dim }}>※ 本番ではメールで送信</span></div>
+                <input type="text" value={verCode} onChange={e => setVerCode(e.target.value)} placeholder="6桁のコード" maxLength={6} style={{ ...inp, textAlign: "center", fontSize: 24, letterSpacing: 8, fontFamily: "monospace" }} onKeyDown={e => e.key === "Enter" && handleVerify()} autoFocus />
                 <button onClick={handleVerify} style={pb}>認証する</button>
-                <button onClick={() => { setAuthStep("email"); setSentCode(null); }} style={{ ...gb, width: "100%", marginTop: 6, justifyContent: "center" }}>戻る</button>
+                <button onClick={() => { setAuthStep("email"); setSentCode(null); }} style={{ ...gb, width: "100%", marginTop: 8, justifyContent: "center" }}>戻る</button>
               </>
             )}
-            {authError && <p style={{ color: C.red, fontSize: 11, marginTop: 6 }}>{authError}</p>}
+            {authError && <p style={{ color: C.red, fontSize: 14, marginTop: 8 }}>{authError}</p>}
           </div>
         </div>
       )}
@@ -441,13 +443,13 @@ export default function PromptBuilder() {
           <div style={ml()} onClick={e => e.stopPropagation()}>
             {(() => { const cat = CAT[newBlockCat] || CAT.role; return (
               <>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: 8, background: cat.bg, display: "flex", alignItems: "center", justifyContent: "center", border: `1px solid ${cat.color}22` }}><cat.Icon size={16} color={cat.color} /></div>
-                  <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>「{cat.label}」にブロック追加</h2>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 10, background: cat.bg, display: "flex", alignItems: "center", justifyContent: "center", border: `1px solid ${cat.color}22` }}><cat.Icon size={20} color={cat.color} /></div>
+                  <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>「{cat.label}」にブロック追加</h2>
                 </div>
-                <input value={newBlockData.label} onChange={e => setNewBlockData({ ...newBlockData, label: e.target.value })} placeholder="ブロック名" style={{ ...inp, marginBottom: 8 }} autoFocus />
-                <textarea value={newBlockData.content} onChange={e => setNewBlockData({ ...newBlockData, content: e.target.value })} placeholder={"テンプレートを入力\n{項目名}で穴埋め箇所を作れます"} style={{ ...inp, minHeight: 100, resize: "vertical", fontFamily: "monospace", fontSize: 11 }} />
-                <p style={{ fontSize: 10, color: C.dim, margin: "8px 0 0" }}>{"{"}項目名{"}"} → あとから入力できます</p>
+                <input value={newBlockData.label} onChange={e => setNewBlockData({ ...newBlockData, label: e.target.value })} placeholder="ブロック名" style={{ ...inp, marginBottom: 10 }} autoFocus />
+                <textarea value={newBlockData.content} onChange={e => setNewBlockData({ ...newBlockData, content: e.target.value })} placeholder={"テンプレートを入力\n{項目名}で穴埋め箇所を作れます"} style={{ ...inp, minHeight: 120, resize: "vertical", fontFamily: "monospace", fontSize: 14 }} />
+                <p style={{ fontSize: 13, color: C.dim, margin: "10px 0 0" }}>{"{"}項目名{"}"} → あとから入力できます</p>
                 <button onClick={addCustomBlock} style={{ ...pb, background: cat.color }} disabled={!newBlockData.label || !newBlockData.content}>保存</button>
               </>
             ); })()}
@@ -455,10 +457,76 @@ export default function PromptBuilder() {
         </div>
       )}
 
+      {showInfo && (
+        <div style={ov} onClick={() => setShowInfo(false)}>
+          <div style={{ ...ml(), maxWidth: 520, maxHeight: "85vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: `${C.accent}18`, display: "flex", alignItems: "center", justifyContent: "center" }}><Layers size={24} color={C.accent} /></div>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Prompt Blocks</h2>
+                  <span style={{ fontSize: 12, color: C.dim, background: `${C.accent}15`, padding: "2px 8px", borderRadius: 4, fontWeight: 600 }}>モック版</span>
+                </div>
+              </div>
+              <button onClick={() => setShowInfo(false)} style={tb}><X size={20} /></button>
+            </div>
+
+            <div style={{ background: C.surface2, borderRadius: 12, padding: 18, marginBottom: 16, border: `1px solid ${C.border}` }}>
+              <h3 style={{ margin: "0 0 8px", fontSize: 17, fontWeight: 700, color: C.accent }}>このサービスについて</h3>
+              <p style={{ margin: 0, fontSize: 15, lineHeight: 1.7, color: C.text }}>
+                プロンプトの構成要素を「ブロック」として保存し、レゴのように組み合わせることで、効率的にプロンプトを作成できるツールです。
+              </p>
+              <p style={{ margin: "8px 0 0", fontSize: 14, lineHeight: 1.7, color: C.dim }}>
+                ソフトウェアのインストール不要。ブラウザだけで誰でもすぐに使えます。
+              </p>
+            </div>
+
+            <div style={{ background: C.surface2, borderRadius: 12, padding: 18, marginBottom: 16, border: `1px solid ${C.border}` }}>
+              <h3 style={{ margin: "0 0 12px", fontSize: 17, fontWeight: 700, color: C.green }}>使い方ガイド</h3>
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                {[
+                  { step: "1", title: "カテゴリを選ぶ", desc: "右側（モバイルでは下部）の6つのカテゴリ（役割・入力・タスク・出力形式・制約・テクニック）から、使いたい種類を選びます。" },
+                  { step: "2", title: "ブロックを追加", desc: "表示されたブロック一覧から、使いたいブロックをタップするとキャンバスに追加されます。複数のブロックを組み合わせましょう。" },
+                  { step: "3", title: "穴埋めを入力", desc: "ブロック内の {項目名} の部分は、「穴埋め」ボタンから具体的な値を入力できます。" },
+                  { step: "4", title: "コピーして使う", desc: "完成したプロンプトをコピーボタンでクリップボードにコピーし、お好きなAIツールに貼り付けて使えます。" },
+                ].map(item => (
+                  <div key={item.step} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 8, background: `${C.green}18`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontWeight: 700, fontSize: 15, color: C.green }}>{item.step}</div>
+                    <div>
+                      <p style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>{item.title}</p>
+                      <p style={{ margin: "4px 0 0", fontSize: 14, lineHeight: 1.6, color: C.dim }}>{item.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ background: C.surface2, borderRadius: 12, padding: 18, marginBottom: 16, border: `1px solid ${C.border}` }}>
+              <h3 style={{ margin: "0 0 8px", fontSize: 17, fontWeight: 700, color: "#C084FC" }}>便利な機能</h3>
+              <ul style={{ margin: 0, padding: "0 0 0 20px", fontSize: 14, lineHeight: 2, color: C.dim }}>
+                <li>ブロックの<strong style={{ color: C.text }}>並び替え</strong>（ドラッグ、または上下ボタン）</li>
+                <li>ブロック内容の<strong style={{ color: C.text }}>編集</strong>（鉛筆アイコン、またはテキストをクリック）</li>
+                <li>ブロックの<strong style={{ color: C.text }}>複製</strong>・<strong style={{ color: C.text }}>削除</strong></li>
+                <li><strong style={{ color: C.text }}>カスタムブロック</strong>の作成・保存</li>
+                <li>ログインすると<strong style={{ color: C.text }}>プロンプトの保存・読み込み</strong>が可能</li>
+              </ul>
+            </div>
+
+            <a href="https://github.com/craftpaperbag" target="_blank" rel="noopener noreferrer"
+              style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 18px", textDecoration: "none", color: C.text, fontSize: 15, fontWeight: 600, transition: "border-color 0.15s" }}
+              onMouseEnter={e => e.currentTarget.style.borderColor = C.accent} onMouseLeave={e => e.currentTarget.style.borderColor = C.border}>
+              <Globe size={20} color={C.accent} />
+              作成者の GitHub を見る
+              <ExternalLink size={15} color={C.dim} />
+            </a>
+          </div>
+        </div>
+      )}
+
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap');
         *{box-sizing:border-box}body{margin:0}
-        ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:${C.border};border-radius:2px}
+        ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:${C.border};border-radius:3px}
         @keyframes slideDown{from{opacity:0;transform:translate(-50%,-12px)}to{opacity:1;transform:translate(-50%,0)}}
         @keyframes blockFlash{0%{box-shadow:0 0 0 0 rgba(88,166,255,0.4)}50%{box-shadow:0 0 14px 3px rgba(88,166,255,0.2)}100%{box-shadow:0 0 0 0 rgba(88,166,255,0)}}
         textarea:focus,input:focus{outline:none;border-color:${C.accent}!important}
@@ -470,22 +538,22 @@ export default function PromptBuilder() {
 
 function SC({ p, onLoad, onDelete }) {
   return (
-    <div style={{ background: "#1E1E22", borderRadius: 10, padding: 12, border: "1px solid #2E2E33" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 13, fontWeight: 600 }}>{p.name}</span><span style={{ fontSize: 9, color: "#71717A" }}>{new Date(p.createdAt).toLocaleDateString("ja-JP")}</span></div>
-      <div style={{ display: "flex", gap: 3, flexWrap: "wrap", margin: "6px 0 8px" }}>
-        {p.blocks.map((b, i) => { const cat = CAT[b.catId] || CAT.technique; return <span key={i} style={{ fontSize: 9, background: cat.bg, color: cat.color, padding: "2px 6px", borderRadius: 4, fontWeight: 600, display: "flex", alignItems: "center", gap: 3 }}><cat.Icon size={9} /> {b.label}</span>; })}
+    <div style={{ background: "#1E1E22", borderRadius: 12, padding: 16, border: "1px solid #2E2E33" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 16, fontWeight: 600 }}>{p.name}</span><span style={{ fontSize: 12, color: "#71717A" }}>{new Date(p.createdAt).toLocaleDateString("ja-JP")}</span></div>
+      <div style={{ display: "flex", gap: 4, flexWrap: "wrap", margin: "8px 0 10px" }}>
+        {p.blocks.map((b, i) => { const cat = CAT[b.catId] || CAT.technique; return <span key={i} style={{ fontSize: 12, background: cat.bg, color: cat.color, padding: "3px 8px", borderRadius: 5, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}><cat.Icon size={12} /> {b.label}</span>; })}
       </div>
-      <div style={{ display: "flex", gap: 5 }}>
-        <button onClick={() => onLoad(p)} style={{ background: "#58A6FF", color: "#111114", border: "none", borderRadius: 6, padding: "6px 0", flex: 1, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>読み込む</button>
-        <button onClick={() => onDelete(p.id)} style={{ background: "none", border: "none", color: "#71717A", cursor: "pointer", padding: "5px 8px", display: "flex", alignItems: "center" }}><Trash2 size={13} /></button>
+      <div style={{ display: "flex", gap: 6 }}>
+        <button onClick={() => onLoad(p)} style={{ background: "#58A6FF", color: "#111114", border: "none", borderRadius: 8, padding: "8px 0", flex: 1, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>読み込む</button>
+        <button onClick={() => onDelete(p.id)} style={{ background: "none", border: "none", color: "#71717A", cursor: "pointer", padding: "6px 10px", display: "flex", alignItems: "center" }}><Trash2 size={17} /></button>
       </div>
     </div>
   );
 }
 
-const inp = { background: "#111114", border: "1px solid #2E2E33", borderRadius: 7, padding: "7px 10px", color: "#E4E4E7", fontSize: 12, width: "100%", fontFamily: "'Inter','Noto Sans JP',sans-serif", transition: "border-color 0.15s" };
-const gb = { background: "none", border: "none", color: "#71717A", cursor: "pointer", fontSize: 12, padding: "5px 8px", borderRadius: 6, display: "flex", alignItems: "center", gap: 4, fontFamily: "inherit", transition: "color 0.12s", whiteSpace: "nowrap" };
-const tb = { background: "none", border: "none", color: "#71717A", cursor: "pointer", padding: "3px 4px", borderRadius: 4, display: "flex", alignItems: "center" };
-const pb = { background: "#58A6FF", color: "#111114", border: "none", borderRadius: 7, padding: "9px 0", width: "100%", marginTop: 10, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" };
-const ov = { position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 12 };
-const ml = () => ({ background: "#18181B", borderRadius: 14, padding: 20, maxWidth: 400, width: "100%", border: "1px solid #2E2E33", boxShadow: "0 24px 64px rgba(0,0,0,0.6)" });
+const inp = { background: "#111114", border: "1px solid #2E2E33", borderRadius: 8, padding: "10px 14px", color: "#E4E4E7", fontSize: 15, width: "100%", fontFamily: "'Inter','Noto Sans JP',sans-serif", transition: "border-color 0.15s" };
+const gb = { background: "none", border: "none", color: "#71717A", cursor: "pointer", fontSize: 14, padding: "8px 12px", borderRadius: 8, display: "flex", alignItems: "center", gap: 6, fontFamily: "inherit", transition: "color 0.12s", whiteSpace: "nowrap" };
+const tb = { background: "none", border: "none", color: "#71717A", cursor: "pointer", padding: "6px 7px", borderRadius: 6, display: "flex", alignItems: "center" };
+const pb = { background: "#58A6FF", color: "#111114", border: "none", borderRadius: 8, padding: "12px 0", width: "100%", marginTop: 12, fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" };
+const ov = { position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 };
+const ml = () => ({ background: "#18181B", borderRadius: 16, padding: 24, maxWidth: 440, width: "100%", border: "1px solid #2E2E33", boxShadow: "0 24px 64px rgba(0,0,0,0.6)" });
