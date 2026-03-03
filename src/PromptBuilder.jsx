@@ -8,6 +8,7 @@ import {
   Zap, GitBranch, Repeat, UserCheck, Layers, Sparkles,
   GripVertical, ChevronUp, ChevronDown, Copy, Trash2, Edit3, Check, Plus, X, Save, LogOut, LogIn, Clipboard,
   ToggleLeft, ToggleRight, MessageCircle, Settings, ExternalLink,
+  Sun, Moon,
 } from "lucide-react";
 
 const ST = {
@@ -26,10 +27,16 @@ const Auth = {
 const uid = () => crypto.randomUUID?.() || Math.random().toString(36).slice(2) + Date.now().toString(36);
 const extractVars = (t) => { const m = t.match(/{([^}]+)}/g) || []; return [...new Set(m.map(x => x.slice(1, -1)))]; };
 
-const C = {
+const DARK = {
   bg: "#111114", surface: "#18181B", surface2: "#1E1E22", surface3: "#27272B",
   border: "#2E2E33", text: "#E4E4E7", dim: "#71717A", accent: "#58A6FF",
-  green: "#4ADE80", red: "#F87171",
+  accentFg: "#111114", green: "#4ADE80", red: "#F87171",
+};
+
+const LIGHT = {
+  bg: "#F5F5F7", surface: "#FFFFFF", surface2: "#F0F0F2", surface3: "#E5E5EA",
+  border: "#D1D1D6", text: "#1C1C1E", dim: "#8E8E93", accent: "#007AFF",
+  accentFg: "#FFFFFF", green: "#34C759", red: "#FF3B30",
 };
 
 const CAT = {
@@ -131,11 +138,24 @@ export default function PromptBuilder() {
   const [dragIdx, setDragIdx] = useState(null);
   const [touchDragState, setTouchDragState] = useState(null);
   const [showInfo, setShowInfo] = useState(false);
+  const [isDark, setIsDark] = useState(() => {
+    try { return localStorage.getItem("pb-theme") !== "light"; } catch { return true; }
+  });
   const blockRefs = useRef([]);
   const canvasEndRef = useRef(null);
 
+  const C = isDark ? DARK : LIGHT;
+
+  const inp = useMemo(() => ({ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 14px", color: C.text, fontSize: 15, width: "100%", fontFamily: "'Inter','Noto Sans JP',sans-serif", transition: "border-color 0.15s" }), [C]);
+  const gb = useMemo(() => ({ background: "none", border: "none", color: C.dim, cursor: "pointer", fontSize: 14, padding: "8px 12px", borderRadius: 8, display: "flex", alignItems: "center", gap: 6, fontFamily: "inherit", transition: "color 0.12s", whiteSpace: "nowrap" }), [C]);
+  const tb = useMemo(() => ({ background: "none", border: "none", color: C.dim, cursor: "pointer", padding: "6px 7px", borderRadius: 6, display: "flex", alignItems: "center" }), [C]);
+  const pb = useMemo(() => ({ background: C.accent, color: C.accentFg, border: "none", borderRadius: 8, padding: "12px 0", width: "100%", marginTop: 12, fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }), [C]);
+  const ov = useMemo(() => ({ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }), []);
+  const ml = useMemo(() => ({ background: C.surface, borderRadius: 16, padding: 24, maxWidth: 440, width: "100%", border: `1px solid ${C.border}`, boxShadow: `0 24px 64px ${isDark ? "rgba(0,0,0,0.6)" : "rgba(0,0,0,0.15)"}` }), [C, isDark]);
+
   useEffect(() => { const ck = () => setIsMobile(window.innerWidth < 768); ck(); window.addEventListener("resize", ck); return () => window.removeEventListener("resize", ck); }, []);
   useEffect(() => { (async () => { const u = await Auth.getUser(); if (u) { setUser(u); await loadData(u.email); } })(); }, []);
+  useEffect(() => { try { localStorage.setItem("pb-theme", isDark ? "dark" : "light"); } catch {} }, [isDark]);
 
   const loadData = async (em) => { const d = await ST.get(`data:${em}`); if (d) { if (d.userBlocks) setUserBlocks(d.userBlocks); if (d.savedPrompts) setSavedPrompts(d.savedPrompts); } };
   const persist = useCallback(async (ub, sp) => { if (!user) return; await ST.set(`data:${user.email}`, { userBlocks: ub ?? userBlocks, savedPrompts: sp ?? savedPrompts }); }, [user, userBlocks, savedPrompts]);
@@ -205,7 +225,7 @@ export default function PromptBuilder() {
     <div style={{ height: "100vh", display: "flex", flexDirection: "column", background: C.bg, color: C.text, fontFamily: "'Inter',-apple-system,'Noto Sans JP',sans-serif", overflow: "hidden" }}
     onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
 
-      {toast && <div style={{ position: "fixed", top: 16, left: "50%", transform: "translateX(-50%)", zIndex: 9999, padding: "10px 24px", borderRadius: 10, background: C.green, color: C.bg, fontSize: 15, fontWeight: 700, boxShadow: "0 6px 24px rgba(0,0,0,0.5)", animation: "slideDown 0.25s ease" }}>{toast}</div>}
+      {toast && <div style={{ position: "fixed", top: 16, left: "50%", transform: "translateX(-50%)", zIndex: 9999, padding: "10px 24px", borderRadius: 10, background: C.green, color: isDark ? C.bg : "#FFFFFF", fontSize: 15, fontWeight: 700, boxShadow: `0 6px 24px ${isDark ? "rgba(0,0,0,0.5)" : "rgba(0,0,0,0.15)"}`, animation: "slideDown 0.25s ease" }}>{toast}</div>}
 
       <header style={{ zIndex: 100, background: C.surface, borderBottom: `1px solid ${C.border}`, padding: isMobile ? "10px 14px" : "12px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -214,6 +234,9 @@ export default function PromptBuilder() {
           <span style={{ fontSize: 11, color: C.dim, background: `${C.accent}15`, padding: "3px 8px", borderRadius: 5, fontWeight: 600 }}>モック版</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <button onClick={() => setIsDark(d => !d)} style={gb} title={isDark ? "ライトモードに切替" : "ダークモードに切替"}>
+            {isDark ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
           <button onClick={() => setShowInfo(true)} style={gb} title="このサービスについて"><Info size={18} /></button>
           <button onClick={() => setShowSaved(true)} style={gb}><Save size={17} />{savedPrompts.length > 0 && <span style={{ fontSize: 13, color: C.dim }}>{savedPrompts.length}</span>}</button>
           {user ? (
@@ -228,12 +251,12 @@ export default function PromptBuilder() {
       <div style={{ flex: 1, display: "flex", flexDirection: isMobile ? "column" : "row", overflow: "hidden" }}>
         {/* CANVAS */}
         {(!isMobile || mobileView === "build") && (
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, borderRight: isMobile ? "none" : `1px solid ${C.border}` }}>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0, borderRight: isMobile ? "none" : `1px solid ${C.border}` }}>
             <div style={{ padding: isMobile ? "8px 12px" : "10px 18px", borderBottom: `1px solid ${C.border}`, display: "flex", gap: 8, alignItems: "center", background: C.surface, flexShrink: 0, overflowX: "auto" }}>
               <input value={currentName} onChange={e => setCurrentName(e.target.value)} placeholder="プロンプト名..." style={{ ...inp, flex: 1, minWidth: 80, maxWidth: isMobile ? 140 : 200, padding: "8px 12px" }} />
               <button onClick={savePrompt} style={gb} disabled={!canvas.length}><Save size={17} /></button>
               {canvas.length > 0 && hasVars && (
-                <button onClick={() => setVarMode(!varMode)} style={{ ...gb, color: varMode ? C.bg : C.accent, background: varMode ? C.accent : "transparent", borderRadius: 8, padding: "6px 14px", gap: 6 }}>
+                <button onClick={() => setVarMode(!varMode)} style={{ ...gb, color: varMode ? C.accentFg : C.accent, background: varMode ? C.accent : "transparent", borderRadius: 8, padding: "6px 14px", gap: 6 }}>
                   {varMode ? <ToggleRight size={17} /> : <ToggleLeft size={17} />}
                   <span style={{ fontSize: 14 }}>穴埋め</span>
                   {filledCount > 0 && <span style={{ fontSize: 12, opacity: 0.7 }}>{filledCount}/{allVars.length}</span>}
@@ -311,7 +334,7 @@ export default function PromptBuilder() {
                     })}
                   </div>
                   <div style={{ padding: "10px 16px", borderTop: `1px solid ${C.border}`, flexShrink: 0 }}>
-                    <button onClick={copyOutput} style={{ background: C.accent, color: C.bg, border: "none", borderRadius: 8, padding: "10px 0", width: "100%", fontSize: 15, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontFamily: "inherit" }}>
+                    <button onClick={copyOutput} style={{ background: C.accent, color: C.accentFg, border: "none", borderRadius: 8, padding: "10px 0", width: "100%", fontSize: 15, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontFamily: "inherit" }}>
                       {copied ? <><Check size={17} /> コピー済み</> : <><Clipboard size={17} /> 完成プロンプトをコピー</>}
                     </button>
                   </div>
@@ -330,7 +353,7 @@ export default function PromptBuilder() {
 
         {/* BLOCK SELECTOR */}
         {(!isMobile || mobileView === "build") && !varMode && (
-          <div style={{ width: isMobile ? "100%" : 360, flex: isMobile ? "0 0 auto" : "0 0 360px", maxHeight: isMobile ? "42vh" : undefined, background: C.surface, borderTop: isMobile ? `1px solid ${C.border}` : "none", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <div style={{ flex: isMobile ? "0 0 auto" : "0 1 360px", minWidth: isMobile ? undefined : 280, maxHeight: isMobile ? "42vh" : undefined, background: C.surface, borderTop: isMobile ? `1px solid ${C.border}` : "none", display: "flex", flexDirection: "column", overflow: "hidden" }}>
             <div style={{ display: "flex", flexWrap: "wrap", borderBottom: `1px solid ${C.border}`, flexShrink: 0, background: C.surface }}>
               {Object.entries(CAT).map(([id, cat]) => {
                 const sel = selectedCat === id;
@@ -392,18 +415,18 @@ export default function PromptBuilder() {
             <h3 style={{ margin: "0 0 14px", fontSize: 18, fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}><Save size={20} /> 保存済み</h3>
             {!user ? <div style={{ textAlign: "center", padding: 36 }}><p style={{ color: C.dim, marginBottom: 14, fontSize: 15 }}>ログインして保存機能を利用</p><button onClick={() => setAuthScreen(true)} style={{ ...gb, color: C.accent }}>ログイン</button></div>
             : !savedPrompts.length ? <p style={{ color: C.dim, textAlign: "center", padding: 36, fontSize: 15 }}>まだ保存されたプロンプトはありません</p>
-            : <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{savedPrompts.map(p => <SC key={p.id} p={p} onLoad={loadPrompt} onDelete={deletePrompt} />)}</div>}
+            : <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{savedPrompts.map(p => <SC key={p.id} p={p} onLoad={loadPrompt} onDelete={deletePrompt} C={C} />)}</div>}
           </div>
         )}
       </div>
 
       {showSaved && (
         <div style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)", display: "flex", justifyContent: "flex-end" }} onClick={() => setShowSaved(false)}>
-          <div style={{ width: isMobile ? "88%" : 400, height: "100%", background: C.surface, borderLeft: `1px solid ${C.border}`, overflowY: "auto", padding: 22, boxShadow: "-8px 0 40px rgba(0,0,0,0.4)" }} onClick={e => e.stopPropagation()}>
+          <div style={{ width: isMobile ? "88%" : 400, height: "100%", background: C.surface, borderLeft: `1px solid ${C.border}`, overflowY: "auto", padding: 22, boxShadow: `-8px 0 40px ${isDark ? "rgba(0,0,0,0.4)" : "rgba(0,0,0,0.1)"}` }} onClick={e => e.stopPropagation()}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}><h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}><Save size={20} /> 保存済み</h3><button onClick={() => setShowSaved(false)} style={tb}><X size={20} /></button></div>
             {!user ? <div style={{ textAlign: "center", padding: 36 }}><p style={{ color: C.dim, marginBottom: 14, fontSize: 15 }}>ログインして保存機能を利用</p><button onClick={() => { setAuthScreen(true); setShowSaved(false); }} style={{ ...gb, color: C.accent }}>ログイン</button></div>
             : !savedPrompts.length ? <p style={{ color: C.dim, fontSize: 15 }}>まだ保存されたプロンプトはありません</p>
-            : <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{savedPrompts.map(p => <SC key={p.id} p={p} onLoad={loadPrompt} onDelete={deletePrompt} />)}</div>}
+            : <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{savedPrompts.map(p => <SC key={p.id} p={p} onLoad={loadPrompt} onDelete={deletePrompt} C={C} />)}</div>}
           </div>
         </div>
       )}
@@ -420,7 +443,7 @@ export default function PromptBuilder() {
 
       {authScreen && (
         <div style={ov} onClick={() => setAuthScreen(false)}>
-          <div style={ml()} onClick={e => e.stopPropagation()}>
+          <div style={ml} onClick={e => e.stopPropagation()}>
             <h2 style={{ margin: "0 0 10px", fontSize: 20, fontWeight: 700 }}>{authStep === "email" ? "ログイン" : "認証コード"}</h2>
             <p style={{ margin: "0 0 16px", fontSize: 14, color: C.dim }}>{authStep === "email" ? "メールアドレスを入力" : `${email} に送信されたコード`}</p>
             {authStep === "email" ? (
@@ -440,7 +463,7 @@ export default function PromptBuilder() {
 
       {showNewBlock && (
         <div style={ov} onClick={() => setShowNewBlock(false)}>
-          <div style={ml()} onClick={e => e.stopPropagation()}>
+          <div style={ml} onClick={e => e.stopPropagation()}>
             {(() => { const cat = CAT[newBlockCat] || CAT.role; return (
               <>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
@@ -459,7 +482,7 @@ export default function PromptBuilder() {
 
       {showInfo && (
         <div style={ov} onClick={() => setShowInfo(false)}>
-          <div style={{ ...ml(), maxWidth: 520, maxHeight: "85vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
+          <div style={{ ...ml, maxWidth: 520, maxHeight: "85vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <div style={{ width: 44, height: 44, borderRadius: 12, background: `${C.accent}18`, display: "flex", alignItems: "center", justifyContent: "center" }}><Layers size={24} color={C.accent} /></div>
@@ -536,24 +559,17 @@ export default function PromptBuilder() {
   );
 }
 
-function SC({ p, onLoad, onDelete }) {
+function SC({ p, onLoad, onDelete, C }) {
   return (
-    <div style={{ background: "#1E1E22", borderRadius: 12, padding: 16, border: "1px solid #2E2E33" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 16, fontWeight: 600 }}>{p.name}</span><span style={{ fontSize: 12, color: "#71717A" }}>{new Date(p.createdAt).toLocaleDateString("ja-JP")}</span></div>
+    <div style={{ background: C.surface2, borderRadius: 12, padding: 16, border: `1px solid ${C.border}` }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: 16, fontWeight: 600 }}>{p.name}</span><span style={{ fontSize: 12, color: C.dim }}>{new Date(p.createdAt).toLocaleDateString("ja-JP")}</span></div>
       <div style={{ display: "flex", gap: 4, flexWrap: "wrap", margin: "8px 0 10px" }}>
         {p.blocks.map((b, i) => { const cat = CAT[b.catId] || CAT.technique; return <span key={i} style={{ fontSize: 12, background: cat.bg, color: cat.color, padding: "3px 8px", borderRadius: 5, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}><cat.Icon size={12} /> {b.label}</span>; })}
       </div>
       <div style={{ display: "flex", gap: 6 }}>
-        <button onClick={() => onLoad(p)} style={{ background: "#58A6FF", color: "#111114", border: "none", borderRadius: 8, padding: "8px 0", flex: 1, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>読み込む</button>
-        <button onClick={() => onDelete(p.id)} style={{ background: "none", border: "none", color: "#71717A", cursor: "pointer", padding: "6px 10px", display: "flex", alignItems: "center" }}><Trash2 size={17} /></button>
+        <button onClick={() => onLoad(p)} style={{ background: C.accent, color: C.accentFg, border: "none", borderRadius: 8, padding: "8px 0", flex: 1, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>読み込む</button>
+        <button onClick={() => onDelete(p.id)} style={{ background: "none", border: "none", color: C.dim, cursor: "pointer", padding: "6px 10px", display: "flex", alignItems: "center" }}><Trash2 size={17} /></button>
       </div>
     </div>
   );
 }
-
-const inp = { background: "#111114", border: "1px solid #2E2E33", borderRadius: 8, padding: "10px 14px", color: "#E4E4E7", fontSize: 15, width: "100%", fontFamily: "'Inter','Noto Sans JP',sans-serif", transition: "border-color 0.15s" };
-const gb = { background: "none", border: "none", color: "#71717A", cursor: "pointer", fontSize: 14, padding: "8px 12px", borderRadius: 8, display: "flex", alignItems: "center", gap: 6, fontFamily: "inherit", transition: "color 0.12s", whiteSpace: "nowrap" };
-const tb = { background: "none", border: "none", color: "#71717A", cursor: "pointer", padding: "6px 7px", borderRadius: 6, display: "flex", alignItems: "center" };
-const pb = { background: "#58A6FF", color: "#111114", border: "none", borderRadius: 8, padding: "12px 0", width: "100%", marginTop: 12, fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" };
-const ov = { position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 };
-const ml = () => ({ background: "#18181B", borderRadius: 16, padding: 24, maxWidth: 440, width: "100%", border: "1px solid #2E2E33", boxShadow: "0 24px 64px rgba(0,0,0,0.6)" });
