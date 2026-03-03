@@ -353,7 +353,7 @@ export default function PromptBuilder() {
 
         {/* BLOCK SELECTOR */}
         {(!isMobile || mobileView === "build") && !varMode && (
-          <div style={{ flex: isMobile ? "0 0 auto" : "0 1 360px", maxWidth: isMobile ? undefined : 360, maxHeight: isMobile ? "42vh" : undefined, background: C.surface, borderTop: isMobile ? `1px solid ${C.border}` : "none", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <div style={{ flex: isMobile ? "0 0 auto" : 1, maxHeight: isMobile ? "42vh" : undefined, background: C.surface, borderTop: isMobile ? `1px solid ${C.border}` : "none", display: "flex", flexDirection: "column", overflow: "hidden" }}>
             <div style={{ display: "flex", flexWrap: "wrap", borderBottom: `1px solid ${C.border}`, flexShrink: 0, background: C.surface }}>
               {Object.entries(CAT).map(([id, cat]) => {
                 const sel = selectedCat === id;
