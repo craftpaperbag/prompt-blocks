@@ -548,13 +548,25 @@ export default function PromptBuilder() {
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {(() => {
                     const mCat = CAT[mobileModalCat];
-                    const mBlocks = getCatBlocks(mobileModalCat).filter(b => b.id.startsWith("u-") || !hiddenBlocks.includes(b.id));
-                    return mBlocks.map(block => {
+                    const mAllBlocks = getCatBlocks(mobileModalCat);
+                    const mHiddenCount = mAllBlocks.filter(b => !b.id.startsWith("u-") && hiddenBlocks.includes(b.id)).length;
+                    const mBlocks = mAllBlocks.filter(b => b.id.startsWith("u-") || showHidden || !hiddenBlocks.includes(b.id));
+                    return <>
+                      {mHiddenCount > 0 && (
+                        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 2 }}>
+                          <button onClick={() => setShowHidden(!showHidden)} style={{ background: showHidden ? `${C.dim}18` : "transparent", border: "none", borderRadius: 6, padding: "4px 10px", cursor: "pointer", fontSize: 12, color: C.dim, display: "flex", alignItems: "center", gap: 4, fontFamily: "inherit" }}>
+                            {showHidden ? <Eye size={13} /> : <EyeOff size={13} />}
+                            <span>非表示 {mHiddenCount}件</span>
+                          </button>
+                        </div>
+                      )}
+                      {mBlocks.map(block => {
                       const isCustom = block.id.startsWith("u-");
+                      const isBlockHidden = hiddenBlocks.includes(block.id);
                       const bVars = extractVars(block.content);
                       return (
-                        <button key={block.id} onClick={() => addToCanvas(block, mobileModalCat)}
-                          style={{ background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, textAlign: "left", color: C.text, transition: "all 0.12s", fontFamily: "inherit", width: "100%" }}>
+                        <button key={block.id} onClick={() => !isBlockHidden && addToCanvas(block, mobileModalCat)}
+                          style={{ background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 16px", cursor: isBlockHidden ? "default" : "pointer", display: "flex", alignItems: "center", gap: 12, textAlign: "left", color: C.text, transition: "all 0.12s", fontFamily: "inherit", width: "100%", opacity: isBlockHidden ? 0.4 : 1 }}>
                           <div style={{ width: 40, height: 40, borderRadius: 10, background: mCat.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, border: `1px solid ${mCat.color}22` }}>
                             <GetIcon id={block.id} size={18} color={mCat.color} />
                           </div>
@@ -562,13 +574,17 @@ export default function PromptBuilder() {
                             <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                               <span style={{ fontSize: 15, fontWeight: 600 }}>{block.label}</span>
                               {isCustom && <span style={{ fontSize: 11, background: C.surface3, color: C.dim, padding: "2px 6px", borderRadius: 4 }}>カスタム</span>}
+                              {isBlockHidden && <span style={{ fontSize: 11, background: C.surface3, color: C.dim, padding: "2px 6px", borderRadius: 4 }}>非表示</span>}
                               {bVars.length > 0 && <span style={{ fontSize: 11, color: C.accent, opacity: 0.7 }}>{bVars.length}箇所</span>}
                             </div>
                             <div style={{ fontSize: 13, color: C.dim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginTop: 3 }}>{block.content.slice(0, 60)}</div>
                           </div>
+                          {isCustom && <span onClick={e => { e.stopPropagation(); deleteCustomBlock(mobileModalCat, block.id); }} style={{ color: C.dim, cursor: "pointer", padding: 4, display: "flex" }}><Trash2 size={15} /></span>}
+                          {!isCustom && <span onClick={e => { e.stopPropagation(); toggleHideBlock(block.id); }} style={{ color: C.dim, cursor: "pointer", padding: 4, display: "flex" }}>{isBlockHidden ? <Eye size={15} /> : <EyeOff size={15} />}</span>}
                         </button>
                       );
-                    });
+                    })}
+                    </>;
                   })()}
                   <button onClick={() => { setNewBlockCat(mobileModalCat); setShowNewBlock(true); setMobileBlockModal(null); setMobileModalCat(null); }}
                     style={{ background: "transparent", border: `1px dashed ${C.border}`, borderRadius: 12, padding: 16, cursor: "pointer", color: C.dim, fontSize: 14, fontWeight: 600, fontFamily: "inherit", width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
