@@ -395,7 +395,7 @@ export default function PromptBuilder() {
                       </button>
                     )}
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1fr", gap: 6 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr 1fr" : "1fr", gap: 6 }}>
                     {blocksForCat.map(block => {
                       const isCustom = block.id.startsWith("u-");
                       const isBlockHidden = hiddenBlocks.includes(block.id);
