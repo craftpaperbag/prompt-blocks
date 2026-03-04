@@ -143,6 +143,8 @@ export default function PromptBuilder() {
   });
   const [showHidden, setShowHidden] = useState(false);
   const [mobileBlocksOpen, setMobileBlocksOpen] = useState(false);
+  const [mobileBlockModal, setMobileBlockModal] = useState(null); // null | "category" | "blocks"
+  const [mobileModalCat, setMobileModalCat] = useState(null);
   const [lastAddedBlock, setLastAddedBlock] = useState(null);
   const [isDark, setIsDark] = useState(() => {
     try { return localStorage.getItem("pb-theme") !== "light"; } catch { return true; }
@@ -178,7 +180,7 @@ export default function PromptBuilder() {
     const c = CAT[catId]; const inst = { ...block, instanceId: uid(), catId, catLabel: c.label, theme: c };
     setCanvas(p => [...p, inst]); setCanvasFlash(inst.instanceId); setTimeout(() => setCanvasFlash(null), 600);
     setLastAddedBlock(inst.instanceId);
-    if (isMobile) setMobileBlocksOpen(false);
+    if (isMobile) { setMobileBlocksOpen(false); setMobileBlockModal(null); setMobileModalCat(null); }
     setTimeout(() => canvasEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }), 50);
   };
   const removeFromCanvas = (iid) => setCanvas(p => p.filter(b => b.instanceId !== iid));
@@ -364,15 +366,15 @@ export default function PromptBuilder() {
         )}
 
         {/* BLOCK SELECTOR */}
-        {(!isMobile || (mobileView === "build" && mobileBlocksOpen)) && !varMode && (
-          <div style={{ flex: isMobile ? "0 0 auto" : 1, maxHeight: isMobile ? "60vh" : undefined, background: C.surface, borderTop: isMobile ? `1px solid ${C.border}` : "none", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        {!isMobile && !varMode && (
+          <div style={{ flex: 1, background: C.surface, display: "flex", flexDirection: "column", overflow: "hidden" }}>
             <div style={{ display: "flex", flexWrap: "wrap", borderBottom: `1px solid ${C.border}`, flexShrink: 0, background: C.surface }}>
               {Object.entries(CAT).map(([id, cat]) => {
                 const sel = selectedCat === id;
                 return (
                   <button key={id} onClick={() => setSelectedCat(sel ? null : id)}
-                    style={{ background: sel ? cat.bg : "transparent", border: "none", borderBottom: `2px solid ${sel ? cat.color : "transparent"}`, padding: isMobile ? "10px 10px" : "10px 0", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, color: sel ? cat.color : C.dim, transition: "all 0.12s", flex: "1 1 calc(100% / 3)", minWidth: 0 }}>
-                    <cat.Icon size={isMobile ? 20 : 22} />
+                    style={{ background: sel ? cat.bg : "transparent", border: "none", borderBottom: `2px solid ${sel ? cat.color : "transparent"}`, padding: "10px 0", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, color: sel ? cat.color : C.dim, transition: "all 0.12s", flex: "1 1 calc(100% / 3)", minWidth: 0 }}>
+                    <cat.Icon size={22} />
                     <span style={{ fontSize: 12, fontWeight: 700 }}>{cat.label}</span>
                   </button>
                 );
@@ -395,14 +397,14 @@ export default function PromptBuilder() {
                       </button>
                     )}
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr 1fr" : "1fr", gap: 6 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 6 }}>
                     {blocksForCat.map(block => {
                       const isCustom = block.id.startsWith("u-");
                       const isBlockHidden = hiddenBlocks.includes(block.id);
                       const bVars = extractVars(block.content);
                       return (
                         <button key={block.id} onClick={() => !isBlockHidden && addToCanvas(block, selectedCat)}
-                          style={{ background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 10, padding: isMobile ? "12px" : "12px 14px", cursor: isBlockHidden ? "default" : "pointer", display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "flex-start" : "center", gap: isMobile ? 6 : 10, textAlign: "left", color: C.text, transition: "all 0.12s", fontFamily: "inherit", width: "100%", opacity: isBlockHidden ? 0.4 : 1 }}
+                          style={{ background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 10, padding: "12px 14px", cursor: isBlockHidden ? "default" : "pointer", display: "flex", flexDirection: "row", alignItems: "center", gap: 10, textAlign: "left", color: C.text, transition: "all 0.12s", fontFamily: "inherit", width: "100%", opacity: isBlockHidden ? 0.4 : 1 }}
                           onMouseEnter={e => { if (!isBlockHidden) e.currentTarget.style.borderColor = selCat.color + "66"; }} onMouseLeave={e => e.currentTarget.style.borderColor = C.border}>
                           <div style={{ width: 36, height: 36, borderRadius: 9, background: selCat.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, border: `1px solid ${selCat.color}22` }}>
                             <GetIcon id={block.id} size={17} color={selCat.color} />
@@ -414,7 +416,7 @@ export default function PromptBuilder() {
                               {isBlockHidden && <span style={{ fontSize: 11, background: C.surface3, color: C.dim, padding: "2px 6px", borderRadius: 4 }}>非表示</span>}
                               {bVars.length > 0 && <span style={{ fontSize: 11, color: C.accent, opacity: 0.7 }}>{bVars.length}箇所</span>}
                             </div>
-                            {!isMobile && <div style={{ fontSize: 13, color: C.dim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginTop: 2 }}>{block.content.slice(0, 50)}</div>}
+                            <div style={{ fontSize: 13, color: C.dim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginTop: 2 }}>{block.content.slice(0, 50)}</div>
                           </div>
                           {isCustom && <span onClick={e => { e.stopPropagation(); deleteCustomBlock(selectedCat, block.id); }} style={{ color: C.dim, cursor: "pointer", padding: 4, display: "flex" }}><Trash2 size={15} /></span>}
                           {!isCustom && <span onClick={e => { e.stopPropagation(); toggleHideBlock(block.id); }} style={{ color: C.dim, cursor: "pointer", padding: 4, display: "flex" }} title={isBlockHidden ? "表示する" : "非表示にする"}>{isBlockHidden ? <Eye size={15} /> : <EyeOff size={15} />}</span>}
@@ -422,7 +424,7 @@ export default function PromptBuilder() {
                       );
                     })}
                     <button onClick={() => { setNewBlockCat(selectedCat); setShowNewBlock(true); }}
-                      style={{ background: "transparent", border: `1px dashed ${C.border}`, borderRadius: 10, padding: 14, cursor: "pointer", color: C.dim, fontSize: 14, fontWeight: 600, fontFamily: "inherit", width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, transition: "color 0.12s", gridColumn: isMobile ? "1 / -1" : undefined }}
+                      style={{ background: "transparent", border: `1px dashed ${C.border}`, borderRadius: 10, padding: 14, cursor: "pointer", color: C.dim, fontSize: 14, fontWeight: 600, fontFamily: "inherit", width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, transition: "color 0.12s" }}
                       onMouseEnter={e => e.currentTarget.style.color = selCat.color} onMouseLeave={e => e.currentTarget.style.color = C.dim}>
                       <Plus size={17} /> ブロックを追加
                     </button>
@@ -433,8 +435,8 @@ export default function PromptBuilder() {
           </div>
         )}
 
-        {isMobile && mobileView === "build" && !varMode && !mobileBlocksOpen && (
-          <button onClick={() => setMobileBlocksOpen(true)}
+        {isMobile && mobileView === "build" && !varMode && (
+          <button onClick={() => setMobileBlockModal("category")}
             style={{ position: "fixed", bottom: 72, right: 20, zIndex: 150, width: 56, height: 56, borderRadius: 28, background: C.accent, color: C.accentFg, border: "none", boxShadow: `0 4px 20px ${isDark ? "rgba(88,166,255,0.35)" : "rgba(0,122,255,0.35)"}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", animation: "fabPulse 2s ease-in-out infinite" }}>
             <Plus size={28} strokeWidth={2.5} />
           </button>
@@ -506,6 +508,75 @@ export default function PromptBuilder() {
                 <button onClick={addCustomBlock} style={{ ...pb, background: cat.color }} disabled={!newBlockData.label || !newBlockData.content}>保存</button>
               </>
             ); })()}
+          </div>
+        </div>
+      )}
+
+      {isMobile && mobileBlockModal && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)", display: "flex", flexDirection: "column", justifyContent: "flex-end" }} onClick={() => { setMobileBlockModal(null); setMobileModalCat(null); }}>
+          <div style={{ background: C.surface, borderRadius: "20px 20px 0 0", maxHeight: "80vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: `0 -8px 40px ${isDark ? "rgba(0,0,0,0.5)" : "rgba(0,0,0,0.15)"}` }} onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div style={{ padding: "16px 20px 12px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                {mobileBlockModal === "blocks" && (
+                  <button onClick={() => { setMobileBlockModal("category"); setMobileModalCat(null); }} style={{ background: "none", border: "none", color: C.dim, cursor: "pointer", padding: 4, display: "flex", alignItems: "center" }}>
+                    <ChevronUp size={20} style={{ transform: "rotate(-90deg)" }} />
+                  </button>
+                )}
+                <span style={{ fontSize: 17, fontWeight: 700 }}>
+                  {mobileBlockModal === "category" ? "カテゴリを選択" : CAT[mobileModalCat]?.label}
+                </span>
+                {mobileBlockModal === "blocks" && <span style={{ fontSize: 13, color: CAT[mobileModalCat]?.color, fontWeight: 500 }}>{CAT[mobileModalCat]?.desc}</span>}
+              </div>
+              <button onClick={() => { setMobileBlockModal(null); setMobileModalCat(null); }} style={{ background: "none", border: "none", color: C.dim, cursor: "pointer", padding: 4, display: "flex" }}><X size={22} /></button>
+            </div>
+
+            {/* Content */}
+            <div style={{ flex: 1, overflowY: "auto", padding: 16 }}>
+              {mobileBlockModal === "category" ? (
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+                  {Object.entries(CAT).map(([id, cat]) => (
+                    <button key={id} onClick={() => { setMobileModalCat(id); setMobileBlockModal("blocks"); }}
+                      style={{ background: cat.bg, border: `1.5px solid ${cat.color}30`, borderRadius: 14, padding: "20px 10px", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 8, color: cat.color, fontFamily: "inherit", transition: "all 0.15s" }}>
+                      <cat.Icon size={28} />
+                      <span style={{ fontSize: 15, fontWeight: 700 }}>{cat.label}</span>
+                      <span style={{ fontSize: 12, color: C.dim, lineHeight: 1.3, textAlign: "center" }}>{cat.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : mobileBlockModal === "blocks" && mobileModalCat ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {(() => {
+                    const mCat = CAT[mobileModalCat];
+                    const mBlocks = getCatBlocks(mobileModalCat).filter(b => b.id.startsWith("u-") || !hiddenBlocks.includes(b.id));
+                    return mBlocks.map(block => {
+                      const isCustom = block.id.startsWith("u-");
+                      const bVars = extractVars(block.content);
+                      return (
+                        <button key={block.id} onClick={() => addToCanvas(block, mobileModalCat)}
+                          style={{ background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 12, padding: "14px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, textAlign: "left", color: C.text, transition: "all 0.12s", fontFamily: "inherit", width: "100%" }}>
+                          <div style={{ width: 40, height: 40, borderRadius: 10, background: mCat.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, border: `1px solid ${mCat.color}22` }}>
+                            <GetIcon id={block.id} size={18} color={mCat.color} />
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                              <span style={{ fontSize: 15, fontWeight: 600 }}>{block.label}</span>
+                              {isCustom && <span style={{ fontSize: 11, background: C.surface3, color: C.dim, padding: "2px 6px", borderRadius: 4 }}>カスタム</span>}
+                              {bVars.length > 0 && <span style={{ fontSize: 11, color: C.accent, opacity: 0.7 }}>{bVars.length}箇所</span>}
+                            </div>
+                            <div style={{ fontSize: 13, color: C.dim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginTop: 3 }}>{block.content.slice(0, 60)}</div>
+                          </div>
+                        </button>
+                      );
+                    });
+                  })()}
+                  <button onClick={() => { setNewBlockCat(mobileModalCat); setShowNewBlock(true); setMobileBlockModal(null); setMobileModalCat(null); }}
+                    style={{ background: "transparent", border: `1px dashed ${C.border}`, borderRadius: 12, padding: 16, cursor: "pointer", color: C.dim, fontSize: 14, fontWeight: 600, fontFamily: "inherit", width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                    <Plus size={17} /> ブロックを追加
+                  </button>
+                </div>
+              ) : null}
+            </div>
           </div>
         </div>
       )}
