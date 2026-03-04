@@ -7,7 +7,7 @@ import {
   Shield, Volume2, Hash, Globe, Ban, Users, Award,
   Zap, GitBranch, Repeat, UserCheck, Layers, Sparkles,
   GripVertical, ChevronUp, ChevronDown, Copy, Trash2, Edit3, Check, Plus, X, Save, LogOut, LogIn, Clipboard,
-  ToggleLeft, ToggleRight, MessageCircle, Settings, ExternalLink,
+  ToggleLeft, ToggleRight, MessageCircle, Settings, ExternalLink, Eye, EyeOff,
   Sun, Moon,
 } from "lucide-react";
 
@@ -138,6 +138,10 @@ export default function PromptBuilder() {
   const [dragIdx, setDragIdx] = useState(null);
   const [touchDragState, setTouchDragState] = useState(null);
   const [showInfo, setShowInfo] = useState(false);
+  const [hiddenBlocks, setHiddenBlocks] = useState(() => {
+    try { const v = localStorage.getItem("pb-hidden-blocks"); return v ? JSON.parse(v) : []; } catch { return []; }
+  });
+  const [showHidden, setShowHidden] = useState(false);
   const [isDark, setIsDark] = useState(() => {
     try { return localStorage.getItem("pb-theme") !== "light"; } catch { return true; }
   });
@@ -156,6 +160,7 @@ export default function PromptBuilder() {
   useEffect(() => { const ck = () => setIsMobile(window.innerWidth < 768); ck(); window.addEventListener("resize", ck); return () => window.removeEventListener("resize", ck); }, []);
   useEffect(() => { (async () => { const u = await Auth.getUser(); if (u) { setUser(u); await loadData(u.email); } })(); }, []);
   useEffect(() => { try { localStorage.setItem("pb-theme", isDark ? "dark" : "light"); } catch {} }, [isDark]);
+  useEffect(() => { try { localStorage.setItem("pb-hidden-blocks", JSON.stringify(hiddenBlocks)); } catch {} }, [hiddenBlocks]);
 
   const loadData = async (em) => { const d = await ST.get(`data:${em}`); if (d) { if (d.userBlocks) setUserBlocks(d.userBlocks); if (d.savedPrompts) setSavedPrompts(d.savedPrompts); } };
   const persist = useCallback(async (ub, sp) => { if (!user) return; await ST.set(`data:${user.email}`, { userBlocks: ub ?? userBlocks, savedPrompts: sp ?? savedPrompts }); }, [user, userBlocks, savedPrompts]);
@@ -209,8 +214,11 @@ export default function PromptBuilder() {
   const deletePrompt = async (id) => { const nx = savedPrompts.filter(p => p.id !== id); setSavedPrompts(nx); await persist(userBlocks, nx); };
   const addCustomBlock = async () => { if (!newBlockData.label || !newBlockData.content || !newBlockCat) return; const b = { id: `u-${uid()}`, label: newBlockData.label, content: newBlockData.content }; const nx = { ...userBlocks, [newBlockCat]: [...(userBlocks[newBlockCat] || []), b] }; setUserBlocks(nx); if (user) await persist(nx, savedPrompts); setNewBlockData({ label: "", content: "" }); setShowNewBlock(false); showToast("ブロック保存しました"); };
   const deleteCustomBlock = async (catId, bId) => { const nx = { ...userBlocks, [catId]: (userBlocks[catId] || []).filter(b => b.id !== bId) }; setUserBlocks(nx); if (user) await persist(nx, savedPrompts); };
+  const toggleHideBlock = (blockId) => setHiddenBlocks(p => p.includes(blockId) ? p.filter(id => id !== blockId) : [...p, blockId]);
 
-  const blocksForCat = selectedCat ? getCatBlocks(selectedCat) : [];
+  const allBlocksForCat = selectedCat ? getCatBlocks(selectedCat) : [];
+  const hiddenCountForCat = allBlocksForCat.filter(b => !b.id.startsWith("u-") && hiddenBlocks.includes(b.id)).length;
+  const blocksForCat = allBlocksForCat.filter(b => b.id.startsWith("u-") || showHidden || !hiddenBlocks.includes(b.id));
   const selCat = CAT[selectedCat] || CAT.role;
 
   const renderContent = (text) => text.split(/({[^}]+})/g).map((part, i) => {
@@ -374,15 +382,24 @@ export default function PromptBuilder() {
                 </div>
               ) : (
                 <>
-                  <p style={{ fontSize: 13, color: selCat.color, padding: "4px 8px 8px", fontWeight: 600, margin: 0 }}>{selCat.desc}</p>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "4px 8px 8px" }}>
+                    <p style={{ fontSize: 13, color: selCat.color, fontWeight: 600, margin: 0 }}>{selCat.desc}</p>
+                    {hiddenCountForCat > 0 && (
+                      <button onClick={() => setShowHidden(!showHidden)} style={{ background: showHidden ? `${C.dim}18` : "transparent", border: "none", borderRadius: 6, padding: "3px 8px", cursor: "pointer", fontSize: 12, color: C.dim, display: "flex", alignItems: "center", gap: 4, fontFamily: "inherit", transition: "all 0.12s" }}>
+                        {showHidden ? <Eye size={13} /> : <EyeOff size={13} />}
+                        <span>非表示 {hiddenCountForCat}件</span>
+                      </button>
+                    )}
+                  </div>
                   <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1fr", gap: 6 }}>
                     {blocksForCat.map(block => {
                       const isCustom = block.id.startsWith("u-");
+                      const isBlockHidden = hiddenBlocks.includes(block.id);
                       const bVars = extractVars(block.content);
                       return (
-                        <button key={block.id} onClick={() => addToCanvas(block, selectedCat)}
-                          style={{ background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 10, padding: isMobile ? "12px" : "12px 14px", cursor: "pointer", display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "flex-start" : "center", gap: isMobile ? 6 : 10, textAlign: "left", color: C.text, transition: "all 0.12s", fontFamily: "inherit", width: "100%" }}
-                          onMouseEnter={e => e.currentTarget.style.borderColor = selCat.color + "66"} onMouseLeave={e => e.currentTarget.style.borderColor = C.border}>
+                        <button key={block.id} onClick={() => !isBlockHidden && addToCanvas(block, selectedCat)}
+                          style={{ background: C.surface2, border: `1px solid ${C.border}`, borderRadius: 10, padding: isMobile ? "12px" : "12px 14px", cursor: isBlockHidden ? "default" : "pointer", display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "flex-start" : "center", gap: isMobile ? 6 : 10, textAlign: "left", color: C.text, transition: "all 0.12s", fontFamily: "inherit", width: "100%", opacity: isBlockHidden ? 0.4 : 1 }}
+                          onMouseEnter={e => { if (!isBlockHidden) e.currentTarget.style.borderColor = selCat.color + "66"; }} onMouseLeave={e => e.currentTarget.style.borderColor = C.border}>
                           <div style={{ width: 36, height: 36, borderRadius: 9, background: selCat.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, border: `1px solid ${selCat.color}22` }}>
                             <GetIcon id={block.id} size={17} color={selCat.color} />
                           </div>
@@ -390,11 +407,13 @@ export default function PromptBuilder() {
                             <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                               <span style={{ fontSize: 15, fontWeight: 600 }}>{block.label}</span>
                               {isCustom && <span style={{ fontSize: 11, background: C.surface3, color: C.dim, padding: "2px 6px", borderRadius: 4 }}>カスタム</span>}
+                              {isBlockHidden && <span style={{ fontSize: 11, background: C.surface3, color: C.dim, padding: "2px 6px", borderRadius: 4 }}>非表示</span>}
                               {bVars.length > 0 && <span style={{ fontSize: 11, color: C.accent, opacity: 0.7 }}>{bVars.length}箇所</span>}
                             </div>
                             {!isMobile && <div style={{ fontSize: 13, color: C.dim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginTop: 2 }}>{block.content.slice(0, 50)}</div>}
                           </div>
                           {isCustom && <span onClick={e => { e.stopPropagation(); deleteCustomBlock(selectedCat, block.id); }} style={{ color: C.dim, cursor: "pointer", padding: 4, display: "flex" }}><Trash2 size={15} /></span>}
+                          {!isCustom && <span onClick={e => { e.stopPropagation(); toggleHideBlock(block.id); }} style={{ color: C.dim, cursor: "pointer", padding: 4, display: "flex" }} title={isBlockHidden ? "表示する" : "非表示にする"}>{isBlockHidden ? <Eye size={15} /> : <EyeOff size={15} />}</span>}
                         </button>
                       );
                     })}
