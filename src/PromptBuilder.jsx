@@ -142,6 +142,8 @@ export default function PromptBuilder() {
     try { const v = localStorage.getItem("pb-hidden-blocks"); return v ? JSON.parse(v) : []; } catch { return []; }
   });
   const [showHidden, setShowHidden] = useState(false);
+  const [mobileBlocksOpen, setMobileBlocksOpen] = useState(false);
+  const [lastAddedBlock, setLastAddedBlock] = useState(null);
   const [isDark, setIsDark] = useState(() => {
     try { return localStorage.getItem("pb-theme") !== "light"; } catch { return true; }
   });
@@ -175,6 +177,8 @@ export default function PromptBuilder() {
   const addToCanvas = (block, catId) => {
     const c = CAT[catId]; const inst = { ...block, instanceId: uid(), catId, catLabel: c.label, theme: c };
     setCanvas(p => [...p, inst]); setCanvasFlash(inst.instanceId); setTimeout(() => setCanvasFlash(null), 600);
+    setLastAddedBlock(inst.instanceId);
+    if (isMobile) setMobileBlocksOpen(false);
     setTimeout(() => canvasEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }), 50);
   };
   const removeFromCanvas = (iid) => setCanvas(p => p.filter(b => b.instanceId !== iid));
@@ -280,7 +284,7 @@ export default function PromptBuilder() {
                   <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", border: `2px dashed ${C.border}`, borderRadius: 14, padding: 32 }}>
                     <Layers size={40} color={C.dim} strokeWidth={1.5} />
                     <p style={{ fontSize: 16, fontWeight: 600, margin: "12px 0 4px", color: C.dim }}>キャンバス</p>
-                    <p style={{ fontSize: 14, color: C.dim, textAlign: "center", opacity: 0.7 }}>{isMobile ? "下のカテゴリからブロックを選んで積み上げ" : "右のカテゴリからブロックを選んで積み上げ"}</p>
+                    <p style={{ fontSize: 14, color: C.dim, textAlign: "center", opacity: 0.7 }}>{isMobile ? "右下の＋ボタンからブロックを選んで積み上げ" : "右のカテゴリからブロックを選んで積み上げ"}</p>
                   </div>
                 ) : (
                   <>
@@ -292,7 +296,7 @@ export default function PromptBuilder() {
                       return (
                         <div key={block.instanceId} ref={el => blockRefs.current[idx] = el}
                           draggable={!isEd && !isMobile} onDragStart={() => handleDragStart(idx)} onDragOver={e => handleDragOver(e, idx)} onDragEnd={handleDragEnd}
-                          style={{ background: C.surface2, border: `1px solid ${isDragging ? th.color : C.border}`, borderLeft: `4px solid ${th.color}`, borderRadius: 10, overflow: "hidden", opacity: isDragging ? 0.65 : 1, animation: canvasFlash === block.instanceId ? "blockFlash 0.5s ease" : undefined, flexShrink: 0, transition: "opacity 0.15s, border-color 0.15s", transform: isDragging ? "scale(1.02)" : "none" }}>
+                          style={{ background: C.surface2, border: `1px solid ${isDragging ? th.color : lastAddedBlock === block.instanceId ? th.color + "88" : C.border}`, borderLeft: `4px solid ${th.color}`, borderRadius: 10, overflow: "hidden", opacity: isDragging ? 0.65 : 1, animation: canvasFlash === block.instanceId ? "blockFlash 0.5s ease" : lastAddedBlock === block.instanceId ? "lastAddedGlow 2s ease-in-out infinite" : undefined, flexShrink: 0, transition: "opacity 0.15s, border-color 0.15s", transform: isDragging ? "scale(1.02)" : "none", boxShadow: lastAddedBlock === block.instanceId ? `0 0 12px 2px ${th.color}30` : undefined }}>
                           <div style={{ display: "flex", alignItems: "center", padding: "8px 12px", gap: 8 }}>
                             <span onTouchStart={e => onTouchStart(idx, e)} style={{ cursor: "grab", opacity: 0.35, touchAction: "none", display: "flex", padding: 3 }}><GripVertical size={17} /></span>
                             <span style={{ color: th.color, display: "flex" }}><CatIc size={15} /></span>
@@ -360,7 +364,7 @@ export default function PromptBuilder() {
         )}
 
         {/* BLOCK SELECTOR */}
-        {(!isMobile || mobileView === "build") && !varMode && (
+        {(!isMobile || (mobileView === "build" && mobileBlocksOpen)) && !varMode && (
           <div style={{ flex: isMobile ? "0 0 auto" : 1, maxHeight: isMobile ? "42vh" : undefined, background: C.surface, borderTop: isMobile ? `1px solid ${C.border}` : "none", display: "flex", flexDirection: "column", overflow: "hidden" }}>
             <div style={{ display: "flex", flexWrap: "wrap", borderBottom: `1px solid ${C.border}`, flexShrink: 0, background: C.surface }}>
               {Object.entries(CAT).map(([id, cat]) => {
@@ -427,6 +431,13 @@ export default function PromptBuilder() {
               )}
             </div>
           </div>
+        )}
+
+        {isMobile && mobileView === "build" && !varMode && !mobileBlocksOpen && (
+          <button onClick={() => setMobileBlocksOpen(true)}
+            style={{ position: "fixed", bottom: 72, right: 20, zIndex: 150, width: 56, height: 56, borderRadius: 28, background: C.accent, color: C.accentFg, border: "none", boxShadow: `0 4px 20px ${isDark ? "rgba(88,166,255,0.35)" : "rgba(0,122,255,0.35)"}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", animation: "fabPulse 2s ease-in-out infinite" }}>
+            <Plus size={28} strokeWidth={2.5} />
+          </button>
         )}
 
         {isMobile && mobileView === "saved" && (
@@ -571,6 +582,8 @@ export default function PromptBuilder() {
         ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:${C.border};border-radius:3px}
         @keyframes slideDown{from{opacity:0;transform:translate(-50%,-12px)}to{opacity:1;transform:translate(-50%,0)}}
         @keyframes blockFlash{0%{box-shadow:0 0 0 0 rgba(88,166,255,0.4)}50%{box-shadow:0 0 14px 3px rgba(88,166,255,0.2)}100%{box-shadow:0 0 0 0 rgba(88,166,255,0)}}
+        @keyframes lastAddedGlow{0%{box-shadow:0 0 8px 1px rgba(88,166,255,0.15)}50%{box-shadow:0 0 18px 4px rgba(88,166,255,0.3)}100%{box-shadow:0 0 8px 1px rgba(88,166,255,0.15)}}
+        @keyframes fabPulse{0%{transform:scale(1)}50%{transform:scale(1.06)}100%{transform:scale(1)}}
         textarea:focus,input:focus{outline:none;border-color:${C.accent}!important}
         button:disabled{opacity:0.35;cursor:not-allowed}
       `}</style>
