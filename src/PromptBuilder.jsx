@@ -133,6 +133,7 @@ export default function PromptBuilder() {
   const [showNewBlock, setShowNewBlock] = useState(false);
   const [newBlockCat, setNewBlockCat] = useState(null);
   const [newBlockData, setNewBlockData] = useState({ label: "", content: "" });
+  const [editingCustom, setEditingCustom] = useState(null);
   const [varMode, setVarMode] = useState(false);
   const [varValues, setVarValues] = useState({});
   const [dragIdx, setDragIdx] = useState(null);
@@ -220,6 +221,8 @@ export default function PromptBuilder() {
   const deletePrompt = async (id) => { const nx = savedPrompts.filter(p => p.id !== id); setSavedPrompts(nx); await persist(userBlocks, nx); };
   const addCustomBlock = async () => { if (!newBlockData.label || !newBlockData.content || !newBlockCat) return; const b = { id: `u-${uid()}`, label: newBlockData.label, content: newBlockData.content }; const nx = { ...userBlocks, [newBlockCat]: [...(userBlocks[newBlockCat] || []), b] }; setUserBlocks(nx); if (user) await persist(nx, savedPrompts); setNewBlockData({ label: "", content: "" }); setShowNewBlock(false); showToast("ブロック保存しました"); };
   const deleteCustomBlock = async (catId, bId) => { const nx = { ...userBlocks, [catId]: (userBlocks[catId] || []).filter(b => b.id !== bId) }; setUserBlocks(nx); if (user) await persist(nx, savedPrompts); };
+  const startEditCustom = (block, catId) => setEditingCustom({ ...block, catId });
+  const saveEditCustom = async () => { if (!editingCustom || !editingCustom.label || !editingCustom.content) return; const { catId, id, label, content } = editingCustom; const nx = { ...userBlocks, [catId]: (userBlocks[catId] || []).map(b => b.id === id ? { ...b, label, content } : b) }; setUserBlocks(nx); if (user) await persist(nx, savedPrompts); setEditingCustom(null); showToast("ブロックを更新しました"); };
   const toggleHideBlock = (blockId) => setHiddenBlocks(p => p.includes(blockId) ? p.filter(id => id !== blockId) : [...p, blockId]);
 
   const allBlocksForCat = selectedCat ? getCatBlocks(selectedCat) : [];
@@ -418,7 +421,8 @@ export default function PromptBuilder() {
                             </div>
                             <div style={{ fontSize: 13, color: C.dim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginTop: 2 }}>{block.content.slice(0, 50)}</div>
                           </div>
-                          {isCustom && <span onClick={e => { e.stopPropagation(); deleteCustomBlock(selectedCat, block.id); }} style={{ color: C.dim, cursor: "pointer", padding: 4, display: "flex" }}><Trash2 size={15} /></span>}
+                          {isCustom && <span onClick={e => { e.stopPropagation(); startEditCustom(block, selectedCat); }} style={{ color: C.dim, cursor: "pointer", padding: 4, display: "flex" }} title="編集"><Edit3 size={15} /></span>}
+                          {isCustom && <span onClick={e => { e.stopPropagation(); deleteCustomBlock(selectedCat, block.id); }} style={{ color: C.dim, cursor: "pointer", padding: 4, display: "flex" }} title="削除"><Trash2 size={15} /></span>}
                           {!isCustom && <span onClick={e => { e.stopPropagation(); toggleHideBlock(block.id); }} style={{ color: C.dim, cursor: "pointer", padding: 4, display: "flex" }} title={isBlockHidden ? "表示する" : "非表示にする"}>{isBlockHidden ? <Eye size={15} /> : <EyeOff size={15} />}</span>}
                         </button>
                       );
@@ -512,6 +516,25 @@ export default function PromptBuilder() {
         </div>
       )}
 
+      {editingCustom && (
+        <div style={ov} onClick={() => setEditingCustom(null)}>
+          <div style={ml} onClick={e => e.stopPropagation()}>
+            {(() => { const cat = CAT[editingCustom.catId] || CAT.role; return (
+              <>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 10, background: cat.bg, display: "flex", alignItems: "center", justifyContent: "center", border: `1px solid ${cat.color}22` }}><cat.Icon size={20} color={cat.color} /></div>
+                  <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>ブロックを編集</h2>
+                </div>
+                <input value={editingCustom.label} onChange={e => setEditingCustom(p => ({ ...p, label: e.target.value }))} placeholder="ブロック名" style={{ ...inp, marginBottom: 10 }} autoFocus />
+                <textarea value={editingCustom.content} onChange={e => setEditingCustom(p => ({ ...p, content: e.target.value }))} placeholder={"テンプレートを入力\n{項目名}で穴埋め箇所を作れます"} style={{ ...inp, minHeight: 120, resize: "vertical", fontFamily: "monospace", fontSize: 14 }} />
+                <p style={{ fontSize: 13, color: C.dim, margin: "10px 0 0" }}>{"{"}項目名{"}"} → あとから入力できます</p>
+                <button onClick={saveEditCustom} style={{ ...pb, background: cat.color }} disabled={!editingCustom.label || !editingCustom.content}>更新</button>
+              </>
+            ); })()}
+          </div>
+        </div>
+      )}
+
       {isMobile && mobileBlockModal && (
         <div style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)", display: "flex", flexDirection: "column", justifyContent: "flex-end" }} onClick={() => { setMobileBlockModal(null); setMobileModalCat(null); }}>
           <div style={{ background: C.surface, borderRadius: "20px 20px 0 0", maxHeight: "80vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: `0 -8px 40px ${isDark ? "rgba(0,0,0,0.5)" : "rgba(0,0,0,0.15)"}` }} onClick={e => e.stopPropagation()}>
@@ -579,7 +602,8 @@ export default function PromptBuilder() {
                             </div>
                             <div style={{ fontSize: 13, color: C.dim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginTop: 3 }}>{block.content.slice(0, 60)}</div>
                           </div>
-                          {isCustom && <span onClick={e => { e.stopPropagation(); deleteCustomBlock(mobileModalCat, block.id); }} style={{ color: C.dim, cursor: "pointer", padding: 4, display: "flex" }}><Trash2 size={15} /></span>}
+                          {isCustom && <span onClick={e => { e.stopPropagation(); startEditCustom(block, mobileModalCat); setMobileBlockModal(null); setMobileModalCat(null); }} style={{ color: C.dim, cursor: "pointer", padding: 4, display: "flex" }} title="編集"><Edit3 size={15} /></span>}
+                          {isCustom && <span onClick={e => { e.stopPropagation(); deleteCustomBlock(mobileModalCat, block.id); }} style={{ color: C.dim, cursor: "pointer", padding: 4, display: "flex" }} title="削除"><Trash2 size={15} /></span>}
                           {!isCustom && <span onClick={e => { e.stopPropagation(); toggleHideBlock(block.id); }} style={{ color: C.dim, cursor: "pointer", padding: 4, display: "flex" }}>{isBlockHidden ? <Eye size={15} /> : <EyeOff size={15} />}</span>}
                         </button>
                       );
