@@ -8,7 +8,7 @@ import {
   Zap, GitBranch, Repeat, UserCheck, Layers, Sparkles,
   GripVertical, ChevronUp, ChevronDown, Copy, Trash2, Edit3, Check, Plus, X, Save, LogOut, LogIn, Clipboard,
   ToggleLeft, ToggleRight, MessageCircle, Settings, ExternalLink, Eye, EyeOff,
-  Sun, Moon,
+  Sun, Moon, ArrowUpDown, Heading,
 } from "lucide-react";
 
 const ST = {
@@ -150,6 +150,7 @@ export default function PromptBuilder() {
   const [isDark, setIsDark] = useState(() => {
     try { return localStorage.getItem("pb-theme") !== "light"; } catch { return true; }
   });
+  const [mdHeadings, setMdHeadings] = useState(false);
   const blockRefs = useRef([]);
   const canvasEndRef = useRef(null);
 
@@ -211,7 +212,26 @@ export default function PromptBuilder() {
   const handleDragEnd = () => setDragIdx(null);
 
   const allVars = useMemo(() => { const vs = []; canvas.forEach(b => extractVars(b.content).forEach(v => { if (!vs.some(x => x.name === v)) vs.push({ name: v, theme: b.theme }); })); return vs; }, [canvas]);
-  const getFilledOutput = useCallback(() => { let o = canvas.map(b => b.content).join("\n\n"); Object.entries(varValues).forEach(([k, v]) => { if (v) o = o.replaceAll(`{${k}}`, v); }); return o; }, [canvas, varValues]);
+  const getFilledOutput = useCallback(() => {
+    let parts;
+    if (mdHeadings) {
+      let lastCat = null;
+      parts = [];
+      canvas.forEach(b => {
+        if (b.catId !== lastCat) {
+          const cat = CAT[b.catId];
+          if (cat) parts.push(`## ${cat.label}`);
+          lastCat = b.catId;
+        }
+        parts.push(b.content);
+      });
+    } else {
+      parts = canvas.map(b => b.content);
+    }
+    let o = parts.join("\n\n");
+    Object.entries(varValues).forEach(([k, v]) => { if (v) o = o.replaceAll(`{${k}}`, v); });
+    return o;
+  }, [canvas, varValues, mdHeadings]);
   const filledCount = allVars.filter(v => varValues[v.name]?.trim()).length;
   const hasVars = allVars.length > 0;
   const copyOutput = () => { navigator.clipboard?.writeText(getFilledOutput()); setCopied(true); setTimeout(() => setCopied(false), 2000); };
@@ -224,6 +244,14 @@ export default function PromptBuilder() {
   const startEditCustom = (block, catId) => setEditingCustom({ ...block, catId });
   const saveEditCustom = async () => { if (!editingCustom || !editingCustom.label || !editingCustom.content) return; const { catId, id, label, content } = editingCustom; const nx = { ...userBlocks, [catId]: (userBlocks[catId] || []).map(b => b.id === id ? { ...b, label, content } : b) }; setUserBlocks(nx); if (user) await persist(nx, savedPrompts); setEditingCustom(null); showToast("ブロックを更新しました"); };
   const toggleHideBlock = (blockId) => setHiddenBlocks(p => p.includes(blockId) ? p.filter(id => id !== blockId) : [...p, blockId]);
+  const bulkHidePresets = (catId, hide) => {
+    const cat = CATEGORIES.find(c => c.id === catId);
+    if (!cat) return;
+    const presetIds = cat.blocks.map(b => b.id);
+    setHiddenBlocks(p => hide ? [...new Set([...p, ...presetIds])] : p.filter(id => !presetIds.includes(id)));
+  };
+  const CAT_ORDER = Object.keys(CAT);
+  const autoSortCanvas = () => setCanvas(p => [...p].sort((a, b) => CAT_ORDER.indexOf(a.catId) - CAT_ORDER.indexOf(b.catId)));
 
   const allBlocksForCat = selectedCat ? getCatBlocks(selectedCat) : [];
   const hiddenCountForCat = allBlocksForCat.filter(b => !b.id.startsWith("u-") && hiddenBlocks.includes(b.id)).length;
@@ -278,6 +306,12 @@ export default function PromptBuilder() {
                   <span style={{ fontSize: 14 }}>穴埋め</span>
                   {filledCount > 0 && <span style={{ fontSize: 12, opacity: 0.7 }}>{filledCount}/{allVars.length}</span>}
                 </button>
+              )}
+              {canvas.length > 1 && !varMode && (
+                <button onClick={autoSortCanvas} style={gb} title="カテゴリ順に自動並べ替え"><ArrowUpDown size={17} /></button>
+              )}
+              {canvas.length > 0 && (
+                <button onClick={() => setMdHeadings(v => !v)} style={{ ...gb, color: mdHeadings ? C.accentFg : C.dim, background: mdHeadings ? C.accent : "transparent", borderRadius: 8, padding: "6px 10px" }} title="見出し付きで出力"><Heading size={17} /></button>
               )}
               <button onClick={copyOutput} style={gb} disabled={!canvas.length}>{copied ? <Check size={17} color={C.green} /> : <Clipboard size={17} />}</button>
               <button onClick={() => { setCanvas([]); setVarMode(false); setVarValues({}); }} style={gb} disabled={!canvas.length}><Trash2 size={16} /></button>
@@ -393,12 +427,20 @@ export default function PromptBuilder() {
                 <>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "4px 8px 8px" }}>
                     <p style={{ fontSize: 13, color: selCat.color, fontWeight: 600, margin: 0 }}>{selCat.desc}</p>
+                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      {(() => { const cat = CATEGORIES.find(c => c.id === selectedCat); const presetCount = cat ? cat.blocks.length : 0; const allHidden = presetCount > 0 && cat.blocks.every(b => hiddenBlocks.includes(b.id)); return presetCount > 0 && (
+                        <button onClick={() => bulkHidePresets(selectedCat, !allHidden)} style={{ background: "transparent", border: "none", borderRadius: 6, padding: "3px 8px", cursor: "pointer", fontSize: 12, color: C.dim, display: "flex", alignItems: "center", gap: 4, fontFamily: "inherit", transition: "all 0.12s" }} title={allHidden ? "すべて表示" : "すべて非表示"}>
+                          {allHidden ? <Eye size={13} /> : <EyeOff size={13} />}
+                          <span>{allHidden ? "すべて表示" : "一括非表示"}</span>
+                        </button>
+                      ); })()}
                     {hiddenCountForCat > 0 && (
                       <button onClick={() => setShowHidden(!showHidden)} style={{ background: showHidden ? `${C.dim}18` : "transparent", border: "none", borderRadius: 6, padding: "3px 8px", cursor: "pointer", fontSize: 12, color: C.dim, display: "flex", alignItems: "center", gap: 4, fontFamily: "inherit", transition: "all 0.12s" }}>
                         {showHidden ? <Eye size={13} /> : <EyeOff size={13} />}
                         <span>非表示 {hiddenCountForCat}件</span>
                       </button>
                     )}
+                    </div>
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 6 }}>
                     {blocksForCat.map(block => {
@@ -574,15 +616,24 @@ export default function PromptBuilder() {
                     const mAllBlocks = getCatBlocks(mobileModalCat);
                     const mHiddenCount = mAllBlocks.filter(b => !b.id.startsWith("u-") && hiddenBlocks.includes(b.id)).length;
                     const mBlocks = mAllBlocks.filter(b => b.id.startsWith("u-") || showHidden || !hiddenBlocks.includes(b.id));
+                    const mPresetCat = CATEGORIES.find(c => c.id === mobileModalCat);
+                    const mPresetCount = mPresetCat ? mPresetCat.blocks.length : 0;
+                    const mAllPresetHidden = mPresetCount > 0 && mPresetCat.blocks.every(b => hiddenBlocks.includes(b.id));
                     return <>
-                      {mHiddenCount > 0 && (
-                        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 2 }}>
+                      <div style={{ display: "flex", justifyContent: "flex-end", gap: 4, marginBottom: 2 }}>
+                        {mPresetCount > 0 && (
+                          <button onClick={() => bulkHidePresets(mobileModalCat, !mAllPresetHidden)} style={{ background: "transparent", border: "none", borderRadius: 6, padding: "4px 10px", cursor: "pointer", fontSize: 12, color: C.dim, display: "flex", alignItems: "center", gap: 4, fontFamily: "inherit" }}>
+                            {mAllPresetHidden ? <Eye size={13} /> : <EyeOff size={13} />}
+                            <span>{mAllPresetHidden ? "すべて表示" : "一括非表示"}</span>
+                          </button>
+                        )}
+                        {mHiddenCount > 0 && (
                           <button onClick={() => setShowHidden(!showHidden)} style={{ background: showHidden ? `${C.dim}18` : "transparent", border: "none", borderRadius: 6, padding: "4px 10px", cursor: "pointer", fontSize: 12, color: C.dim, display: "flex", alignItems: "center", gap: 4, fontFamily: "inherit" }}>
                             {showHidden ? <Eye size={13} /> : <EyeOff size={13} />}
                             <span>非表示 {mHiddenCount}件</span>
                           </button>
-                        </div>
-                      )}
+                        )}
+                      </div>
                       {mBlocks.map(block => {
                       const isCustom = block.id.startsWith("u-");
                       const isBlockHidden = hiddenBlocks.includes(block.id);
