@@ -130,9 +130,11 @@ export default function PromptBuilder() {
   const [mobileView, setMobileView] = useState("build");
   const [showSaved, setShowSaved] = useState(false);
   const [canvasFlash, setCanvasFlash] = useState(null);
-  const [blockEditorCat, setBlockEditorCat] = useState(null);
-  const [blockEditorDrafts, setBlockEditorDrafts] = useState([]);
-  const [blockEditorEdits, setBlockEditorEdits] = useState({});
+  const [blockEditorOpen, setBlockEditorOpen] = useState(() => { try { const s = JSON.parse(localStorage.getItem("pb-block-editor") || "null"); return s ? s.open : false; } catch { return false; } });
+  const [blockEditorTabs, setBlockEditorTabs] = useState(() => { try { const s = JSON.parse(localStorage.getItem("pb-block-editor") || "null"); return s ? s.tabs : []; } catch { return []; } });
+  const [blockEditorActiveTab, setBlockEditorActiveTab] = useState(() => { try { const s = JSON.parse(localStorage.getItem("pb-block-editor") || "null"); return s ? s.activeTab : null; } catch { return null; } });
+  const [blockEditorDrafts, setBlockEditorDrafts] = useState(() => { try { const s = JSON.parse(localStorage.getItem("pb-block-editor") || "null"); return s ? s.drafts : {}; } catch { return {}; } });
+  const [blockEditorEdits, setBlockEditorEdits] = useState(() => { try { const s = JSON.parse(localStorage.getItem("pb-block-editor") || "null"); return s ? s.edits : {}; } catch { return {}; } });
   const [varMode, setVarMode] = useState(false);
   const [varValues, setVarValues] = useState({});
   const [dragIdx, setDragIdx] = useState(null);
@@ -166,6 +168,7 @@ export default function PromptBuilder() {
   useEffect(() => { (async () => { const u = await Auth.getUser(); if (u) { setUser(u); await loadData(u.email); } })(); }, []);
   useEffect(() => { try { localStorage.setItem("pb-theme", isDark ? "dark" : "light"); } catch {} }, [isDark]);
   useEffect(() => { try { localStorage.setItem("pb-hidden-blocks", JSON.stringify(hiddenBlocks)); } catch {} }, [hiddenBlocks]);
+  useEffect(() => { try { localStorage.setItem("pb-block-editor", JSON.stringify({ open: blockEditorOpen, tabs: blockEditorTabs, activeTab: blockEditorActiveTab, drafts: blockEditorDrafts, edits: blockEditorEdits })); } catch {} }, [blockEditorOpen, blockEditorTabs, blockEditorActiveTab, blockEditorDrafts, blockEditorEdits]);
 
   const loadData = async (em) => { const d = await ST.get(`data:${em}`); if (d) { if (d.userBlocks) setUserBlocks(d.userBlocks); if (d.savedPrompts) setSavedPrompts(d.savedPrompts); } };
   const persist = useCallback(async (ub, sp) => { if (!user) return; await ST.set(`data:${user.email}`, { userBlocks: ub ?? userBlocks, savedPrompts: sp ?? savedPrompts }); }, [user, userBlocks, savedPrompts]);
@@ -238,22 +241,50 @@ export default function PromptBuilder() {
   const savePrompt = async () => { if (!user) { setAuthScreen(true); return; } if (!canvas.length) return; const nm = currentName.trim() || `プロンプト ${savedPrompts.length + 1}`; const p = { id: uid(), name: nm, blocks: canvas.map(({ instanceId, ...r }) => r), createdAt: Date.now() }; const nx = [p, ...savedPrompts]; setSavedPrompts(nx); await persist(userBlocks, nx); setCurrentName(""); showToast("保存しました"); };
   const loadPrompt = (p) => { setCanvas(p.blocks.map(b => ({ ...b, instanceId: uid() }))); setCurrentName(p.name); setShowSaved(false); setVarMode(false); setVarValues({}); if (isMobile) setMobileView("build"); showToast("読み込みました"); };
   const deletePrompt = async (id) => { const nx = savedPrompts.filter(p => p.id !== id); setSavedPrompts(nx); await persist(userBlocks, nx); };
-  const deleteCustomBlock = async (catId, bId) => { const nx = { ...userBlocks, [catId]: (userBlocks[catId] || []).filter(b => b.id !== bId) }; setUserBlocks(nx); if (user) await persist(nx, savedPrompts); };
-  const openBlockEditor = (catId) => { setBlockEditorCat(catId); setBlockEditorDrafts([{ _draftId: uid(), label: "", content: "" }]); const existing = userBlocks[catId] || []; const edits = {}; existing.forEach(b => { edits[b.id] = { label: b.label, content: b.content }; }); setBlockEditorEdits(edits); };
-  const closeBlockEditor = () => { setBlockEditorCat(null); setBlockEditorDrafts([]); setBlockEditorEdits({}); };
-  const saveBlockEditor = async () => {
-    if (!blockEditorCat) return;
-    const catId = blockEditorCat;
-    const existing = (userBlocks[catId] || []).map(b => {
-      const e = blockEditorEdits[b.id];
-      return e ? { ...b, label: e.label, content: e.content } : b;
-    });
-    const newBlocks = blockEditorDrafts.filter(d => d.label && d.content).map(d => ({ id: `u-${uid()}`, label: d.label, content: d.content }));
+  const deleteCustomBlock = async (catId, bId) => { const nx = { ...userBlocks, [catId]: (userBlocks[catId] || []).filter(b => b.id !== bId) }; setUserBlocks(nx); if (user) await persist(nx, savedPrompts); setBlockEditorEdits(p => { const c = { ...p }; if (c[catId]) { const e = { ...c[catId] }; delete e[bId]; c[catId] = e; } return c; }); };
+  const openBlockEditor = (catId) => {
+    setBlockEditorOpen(true);
+    setBlockEditorTabs(prev => prev.includes(catId) ? prev : [...prev, catId]);
+    setBlockEditorActiveTab(catId);
+    setBlockEditorDrafts(prev => prev[catId] ? prev : { ...prev, [catId]: [{ _draftId: uid(), label: "", content: "" }] });
+    setBlockEditorEdits(prev => { if (prev[catId]) return prev; const existing = userBlocks[catId] || []; const edits = {}; existing.forEach(b => { edits[b.id] = { label: b.label, content: b.content }; }); return { ...prev, [catId]: edits }; });
+  };
+  const closeBlockEditorTab = (catId) => {
+    const newTabs = blockEditorTabs.filter(t => t !== catId);
+    setBlockEditorTabs(newTabs);
+    setBlockEditorDrafts(prev => { const n = { ...prev }; delete n[catId]; return n; });
+    setBlockEditorEdits(prev => { const n = { ...prev }; delete n[catId]; return n; });
+    if (newTabs.length === 0) { setBlockEditorOpen(false); setBlockEditorActiveTab(null); }
+    else if (blockEditorActiveTab === catId) setBlockEditorActiveTab(newTabs[newTabs.length - 1]);
+  };
+  const closeBlockEditor = () => { setBlockEditorOpen(false); setBlockEditorTabs([]); setBlockEditorActiveTab(null); setBlockEditorDrafts({}); setBlockEditorEdits({}); };
+  const saveBlockEditorTab = async (catId) => {
+    const catDrafts = blockEditorDrafts[catId] || [];
+    const catEdits = blockEditorEdits[catId] || {};
+    const existing = (userBlocks[catId] || []).map(b => { const e = catEdits[b.id]; return e ? { ...b, label: e.label, content: e.content } : b; });
+    const newBlocks = catDrafts.filter(d => d.label && d.content).map(d => ({ id: `u-${uid()}`, label: d.label, content: d.content }));
     const nx = { ...userBlocks, [catId]: [...existing, ...newBlocks] };
     setUserBlocks(nx); if (user) await persist(nx, savedPrompts);
-    closeBlockEditor();
-    const editedCount = Object.keys(blockEditorEdits).filter(id => { const orig = (userBlocks[catId] || []).find(b => b.id === id); const e = blockEditorEdits[id]; return orig && (orig.label !== e.label || orig.content !== e.content); }).length;
+    closeBlockEditorTab(catId);
+    const editedCount = Object.keys(catEdits).filter(id => { const orig = (userBlocks[catId] || []).find(b => b.id === id); const e = catEdits[id]; return orig && (orig.label !== e.label || orig.content !== e.content); }).length;
     const msg = [editedCount > 0 && `${editedCount}件更新`, newBlocks.length > 0 && `${newBlocks.length}件追加`].filter(Boolean).join("・");
+    showToast(msg || "変更はありません");
+  };
+  const saveAllBlockEditorTabs = async () => {
+    let totalEdited = 0, totalNew = 0;
+    let nxBlocks = { ...userBlocks };
+    for (const catId of blockEditorTabs) {
+      const catDrafts = blockEditorDrafts[catId] || [];
+      const catEdits = blockEditorEdits[catId] || {};
+      const existing = (nxBlocks[catId] || []).map(b => { const e = catEdits[b.id]; return e ? { ...b, label: e.label, content: e.content } : b; });
+      const newBlocks = catDrafts.filter(d => d.label && d.content).map(d => ({ id: `u-${uid()}`, label: d.label, content: d.content }));
+      nxBlocks = { ...nxBlocks, [catId]: [...existing, ...newBlocks] };
+      totalEdited += Object.keys(catEdits).filter(id => { const orig = (userBlocks[catId] || []).find(b => b.id === id); const e = catEdits[id]; return orig && (orig.label !== e.label || orig.content !== e.content); }).length;
+      totalNew += newBlocks.length;
+    }
+    setUserBlocks(nxBlocks); if (user) await persist(nxBlocks, savedPrompts);
+    closeBlockEditor();
+    const msg = [totalEdited > 0 && `${totalEdited}件更新`, totalNew > 0 && `${totalNew}件追加`].filter(Boolean).join("・");
     showToast(msg || "変更はありません");
   };
   const toggleHideBlock = (blockId) => setHiddenBlocks(p => p.includes(blockId) ? p.filter(id => id !== blockId) : [...p, blockId]);
@@ -552,62 +583,88 @@ export default function PromptBuilder() {
         </div>
       )}
 
-      {blockEditorCat && (
+      {blockEditorOpen && blockEditorTabs.length > 0 && (
         <div style={ov} onClick={closeBlockEditor}>
-          <div style={{ background: C.surface, borderRadius: 16, padding: isMobile ? 20 : 28, maxWidth: 720, width: "100%", maxHeight: "85vh", overflow: "auto", border: `1px solid ${C.border}`, boxShadow: `0 24px 64px ${isDark ? "rgba(0,0,0,0.6)" : "rgba(0,0,0,0.15)"}` }} onClick={e => e.stopPropagation()}>
-            {(() => { const cat = CAT[blockEditorCat] || CAT.role; const existingBlocks = userBlocks[blockEditorCat] || []; return (
-              <>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <div style={{ width: 44, height: 44, borderRadius: 12, background: cat.bg, display: "flex", alignItems: "center", justifyContent: "center", border: `1px solid ${cat.color}22` }}><cat.Icon size={22} color={cat.color} /></div>
-                    <div>
-                      <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700 }}>「{cat.label}」カスタムブロック</h2>
-                      <p style={{ margin: 0, fontSize: 13, color: C.dim, marginTop: 2 }}>{"{"}項目名{"}"} → あとから入力できる穴埋め箇所になります</p>
-                    </div>
-                  </div>
-                  <button onClick={closeBlockEditor} style={{ background: "none", border: "none", color: C.dim, cursor: "pointer", padding: 6, display: "flex" }}><X size={20} /></button>
+          <div style={{ background: C.surface, borderRadius: 16, maxWidth: 780, width: "100%", maxHeight: "88vh", display: "flex", flexDirection: "column", border: `1px solid ${C.border}`, boxShadow: `0 24px 64px ${isDark ? "rgba(0,0,0,0.6)" : "rgba(0,0,0,0.15)"}` }} onClick={e => e.stopPropagation()}>
+            {/* Tab bar */}
+            <div style={{ display: "flex", alignItems: "center", borderBottom: `1px solid ${C.border}`, flexShrink: 0, padding: "0 8px", gap: 0, overflowX: "auto" }}>
+              {blockEditorTabs.map(tabCatId => { const tc = CAT[tabCatId] || CAT.role; const isActive = blockEditorActiveTab === tabCatId; const catDrafts = blockEditorDrafts[tabCatId] || []; const catEdits = blockEditorEdits[tabCatId] || {}; const hasChanges = catDrafts.some(d => d.label || d.content) || Object.keys(catEdits).some(id => { const orig = (userBlocks[tabCatId] || []).find(b => b.id === id); const e = catEdits[id]; return orig && (orig.label !== e.label || orig.content !== e.content); }); return (
+                <div key={tabCatId} onClick={() => setBlockEditorActiveTab(tabCatId)}
+                  style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 14px", cursor: "pointer", borderBottom: isActive ? `2px solid ${tc.color}` : "2px solid transparent", color: isActive ? C.text : C.dim, fontSize: 14, fontWeight: isActive ? 700 : 500, transition: "all 0.12s", flexShrink: 0, position: "relative" }}>
+                  <tc.Icon size={15} color={isActive ? tc.color : C.dim} />
+                  <span>{tc.label}</span>
+                  {hasChanges && <span style={{ width: 6, height: 6, borderRadius: 3, background: tc.color, flexShrink: 0 }} />}
+                  <span onClick={e => { e.stopPropagation(); closeBlockEditorTab(tabCatId); }} style={{ color: C.dim, cursor: "pointer", padding: 2, display: "flex", marginLeft: 2, borderRadius: 4 }} onMouseEnter={e => e.currentTarget.style.background = `${C.dim}20`} onMouseLeave={e => e.currentTarget.style.background = "none"}><X size={13} /></span>
                 </div>
-
-                {existingBlocks.length > 0 && (
-                  <div style={{ marginBottom: 20 }}>
-                    <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: C.dim, marginBottom: 10, textTransform: "uppercase", letterSpacing: 1 }}>既存ブロック ({existingBlocks.length})</h3>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                      {existingBlocks.map(block => { const e = blockEditorEdits[block.id] || { label: block.label, content: block.content }; return (
-                        <div key={block.id} style={{ background: C.bg, borderRadius: 12, padding: 16, border: `1px solid ${C.border}` }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                            <input value={e.label} onChange={ev => setBlockEditorEdits(p => ({ ...p, [block.id]: { ...e, label: ev.target.value } }))} placeholder="ブロック名" style={{ ...inp, flex: 1, fontWeight: 600 }} />
-                            <button onClick={() => deleteCustomBlock(blockEditorCat, block.id)} style={{ background: "none", border: "none", color: C.dim, cursor: "pointer", padding: 6, display: "flex", borderRadius: 6 }} title="削除"><Trash2 size={16} /></button>
-                          </div>
-                          <textarea value={e.content} onChange={ev => setBlockEditorEdits(p => ({ ...p, [block.id]: { ...e, content: ev.target.value } }))} placeholder={"テンプレートを入力\n{項目名}で穴埋め箇所を作れます"} style={{ ...inp, minHeight: 100, resize: "vertical", fontFamily: "monospace", fontSize: 14 }} />
-                        </div>
-                      ); })}
-                    </div>
-                  </div>
-                )}
-
-                <div style={{ marginBottom: 16 }}>
-                  <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: C.dim, marginBottom: 10, textTransform: "uppercase", letterSpacing: 1 }}>新規ブロック</h3>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                    {blockEditorDrafts.map((draft, idx) => (
-                      <div key={draft._draftId} style={{ background: C.bg, borderRadius: 12, padding: 16, border: `1px dashed ${cat.color}44` }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                          <input value={draft.label} onChange={ev => setBlockEditorDrafts(p => p.map((d, i) => i === idx ? { ...d, label: ev.target.value } : d))} placeholder="ブロック名" style={{ ...inp, flex: 1, fontWeight: 600 }} autoFocus={idx === blockEditorDrafts.length - 1} />
-                          {blockEditorDrafts.length > 1 && <button onClick={() => setBlockEditorDrafts(p => p.filter((_, i) => i !== idx))} style={{ background: "none", border: "none", color: C.dim, cursor: "pointer", padding: 6, display: "flex", borderRadius: 6 }} title="削除"><X size={16} /></button>}
-                        </div>
-                        <textarea value={draft.content} onChange={ev => setBlockEditorDrafts(p => p.map((d, i) => i === idx ? { ...d, content: ev.target.value } : d))} placeholder={"テンプレートを入力\n{項目名}で穴埋め箇所を作れます"} style={{ ...inp, minHeight: 100, resize: "vertical", fontFamily: "monospace", fontSize: 14 }} />
-                      </div>
+              ); })}
+              {/* Add tab button */}
+              {blockEditorTabs.length < Object.keys(CAT).length && (
+                <div style={{ position: "relative", flexShrink: 0 }}>
+                  <button onClick={e => { const menu = e.currentTarget.nextSibling; menu.style.display = menu.style.display === "block" ? "none" : "block"; }} style={{ background: "none", border: "none", color: C.dim, cursor: "pointer", padding: "10px 8px", display: "flex", alignItems: "center" }}><Plus size={16} /></button>
+                  <div style={{ display: "none", position: "absolute", top: "100%", left: 0, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: 6, zIndex: 10, boxShadow: `0 8px 24px ${isDark ? "rgba(0,0,0,0.4)" : "rgba(0,0,0,0.12)"}`, minWidth: 160 }}>
+                    {Object.entries(CAT).filter(([id]) => !blockEditorTabs.includes(id)).map(([id, c]) => (
+                      <button key={id} onClick={e => { openBlockEditor(id); e.currentTarget.parentElement.style.display = "none"; }} style={{ background: "none", border: "none", color: C.text, cursor: "pointer", padding: "8px 12px", display: "flex", alignItems: "center", gap: 8, width: "100%", fontFamily: "inherit", fontSize: 14, borderRadius: 6 }} onMouseEnter={e => e.currentTarget.style.background = `${c.color}15`} onMouseLeave={e => e.currentTarget.style.background = "none"}>
+                        <c.Icon size={15} color={c.color} /><span>{c.label}</span>
+                      </button>
                     ))}
                   </div>
-                  <button onClick={() => setBlockEditorDrafts(p => [...p, { _draftId: uid(), label: "", content: "" }])}
-                    style={{ background: "transparent", border: `1px dashed ${C.border}`, borderRadius: 10, padding: 12, cursor: "pointer", color: C.dim, fontSize: 14, fontWeight: 600, fontFamily: "inherit", width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 10, transition: "color 0.12s" }}
-                    onMouseEnter={e => e.currentTarget.style.color = cat.color} onMouseLeave={e => e.currentTarget.style.color = C.dim}>
-                    <Plus size={16} /> もう1つ追加
-                  </button>
                 </div>
+              )}
+              <div style={{ flex: 1 }} />
+              <button onClick={closeBlockEditor} style={{ background: "none", border: "none", color: C.dim, cursor: "pointer", padding: 8, display: "flex", flexShrink: 0 }}><X size={18} /></button>
+            </div>
 
-                <button onClick={saveBlockEditor} style={{ ...pb, background: cat.color, fontSize: 16, padding: "14px 0" }}>すべて保存</button>
-              </>
-            ); })()}
+            {/* Active tab content */}
+            <div style={{ flex: 1, overflow: "auto", padding: isMobile ? 16 : 24 }}>
+              {(() => { const catId = blockEditorActiveTab; const cat = CAT[catId] || CAT.role; const existingBlocks = userBlocks[catId] || []; const catDrafts = blockEditorDrafts[catId] || []; const catEdits = blockEditorEdits[catId] || {}; return (
+                <>
+                  <p style={{ margin: "0 0 16px", fontSize: 13, color: C.dim }}>{"{"}項目名{"}"} → あとから入力できる穴埋め箇所になります</p>
+
+                  {existingBlocks.length > 0 && (
+                    <div style={{ marginBottom: 20 }}>
+                      <h3 style={{ margin: 0, fontSize: 13, fontWeight: 600, color: C.dim, marginBottom: 10 }}>既存ブロック ({existingBlocks.length})</h3>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                        {existingBlocks.map(block => { const e = catEdits[block.id] || { label: block.label, content: block.content }; return (
+                          <div key={block.id} style={{ background: C.bg, borderRadius: 12, padding: 16, border: `1px solid ${C.border}` }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                              <input value={e.label} onChange={ev => setBlockEditorEdits(p => ({ ...p, [catId]: { ...catEdits, [block.id]: { ...e, label: ev.target.value } } }))} placeholder="ブロック名" style={{ ...inp, flex: 1, fontWeight: 600 }} />
+                              <button onClick={() => deleteCustomBlock(catId, block.id)} style={{ background: "none", border: "none", color: C.dim, cursor: "pointer", padding: 6, display: "flex", borderRadius: 6 }} title="削除"><Trash2 size={16} /></button>
+                            </div>
+                            <textarea value={e.content} onChange={ev => setBlockEditorEdits(p => ({ ...p, [catId]: { ...catEdits, [block.id]: { ...e, content: ev.target.value } } }))} placeholder={"テンプレートを入力\n{項目名}で穴埋め箇所を作れます"} style={{ ...inp, minHeight: 100, resize: "vertical", fontFamily: "monospace", fontSize: 14 }} />
+                          </div>
+                        ); })}
+                      </div>
+                    </div>
+                  )}
+
+                  <div style={{ marginBottom: 8 }}>
+                    <h3 style={{ margin: 0, fontSize: 13, fontWeight: 600, color: C.dim, marginBottom: 10 }}>新規ブロック</h3>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                      {catDrafts.map((draft, idx) => (
+                        <div key={draft._draftId} style={{ background: C.bg, borderRadius: 12, padding: 16, border: `1px dashed ${cat.color}44` }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                            <input value={draft.label} onChange={ev => setBlockEditorDrafts(p => ({ ...p, [catId]: catDrafts.map((d, i) => i === idx ? { ...d, label: ev.target.value } : d) }))} placeholder="ブロック名" style={{ ...inp, flex: 1, fontWeight: 600 }} />
+                            {catDrafts.length > 1 && <button onClick={() => setBlockEditorDrafts(p => ({ ...p, [catId]: catDrafts.filter((_, i) => i !== idx) }))} style={{ background: "none", border: "none", color: C.dim, cursor: "pointer", padding: 6, display: "flex", borderRadius: 6 }} title="削除"><X size={16} /></button>}
+                          </div>
+                          <textarea value={draft.content} onChange={ev => setBlockEditorDrafts(p => ({ ...p, [catId]: catDrafts.map((d, i) => i === idx ? { ...d, content: ev.target.value } : d) }))} placeholder={"テンプレートを入力\n{項目名}で穴埋め箇所を作れます"} style={{ ...inp, minHeight: 100, resize: "vertical", fontFamily: "monospace", fontSize: 14 }} />
+                        </div>
+                      ))}
+                    </div>
+                    <button onClick={() => setBlockEditorDrafts(p => ({ ...p, [catId]: [...catDrafts, { _draftId: uid(), label: "", content: "" }] }))}
+                      style={{ background: "transparent", border: `1px dashed ${C.border}`, borderRadius: 10, padding: 12, cursor: "pointer", color: C.dim, fontSize: 14, fontWeight: 600, fontFamily: "inherit", width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 10, transition: "color 0.12s" }}
+                      onMouseEnter={e => e.currentTarget.style.color = cat.color} onMouseLeave={e => e.currentTarget.style.color = C.dim}>
+                      <Plus size={16} /> もう1つ追加
+                    </button>
+                  </div>
+                </>
+              ); })()}
+            </div>
+
+            {/* Footer buttons */}
+            <div style={{ borderTop: `1px solid ${C.border}`, padding: isMobile ? "12px 16px" : "14px 24px", display: "flex", gap: 10, flexShrink: 0 }}>
+              <button onClick={() => saveBlockEditorTab(blockEditorActiveTab)} style={{ ...pb, flex: 1, background: (CAT[blockEditorActiveTab] || CAT.role).color, marginTop: 0, fontSize: 15, padding: "12px 0" }}>このタブを保存</button>
+              {blockEditorTabs.length > 1 && <button onClick={saveAllBlockEditorTabs} style={{ ...pb, flex: 1, background: C.accent, marginTop: 0, fontSize: 15, padding: "12px 0" }}>すべて保存</button>}
+            </div>
           </div>
         </div>
       )}
