@@ -585,75 +585,75 @@ export default function PromptBuilder() {
 
       {blockEditorOpen && blockEditorTabs.length > 0 && (
         <div style={ov} onClick={closeBlockEditor}>
-          <div style={{ background: C.surface, borderRadius: 16, maxWidth: 780, width: "100%", maxHeight: "88vh", display: "flex", flexDirection: "column", border: `1px solid ${C.border}`, boxShadow: `0 24px 64px ${isDark ? "rgba(0,0,0,0.6)" : "rgba(0,0,0,0.15)"}` }} onClick={e => e.stopPropagation()}>
+          <div style={{ background: C.surface, borderRadius: 12, maxWidth: 780, width: "100%", maxHeight: "90vh", display: "flex", flexDirection: "column", border: `1px solid ${C.border}`, boxShadow: `0 24px 64px ${isDark ? "rgba(0,0,0,0.6)" : "rgba(0,0,0,0.15)"}` }} onClick={e => e.stopPropagation()}>
             {/* Tab bar */}
-            <div style={{ display: "flex", alignItems: "center", borderBottom: `1px solid ${C.border}`, flexShrink: 0, padding: "0 8px", gap: 0, overflowX: "auto" }}>
+            <div style={{ display: "flex", alignItems: "center", borderBottom: `1px solid ${C.border}`, flexShrink: 0, padding: "0 4px", gap: 0, overflowX: "auto" }}>
               {blockEditorTabs.map(tabCatId => { const tc = CAT[tabCatId] || CAT.role; const isActive = blockEditorActiveTab === tabCatId; const catDrafts = blockEditorDrafts[tabCatId] || []; const catEdits = blockEditorEdits[tabCatId] || {}; const hasChanges = catDrafts.some(d => d.label || d.content) || Object.keys(catEdits).some(id => { const orig = (userBlocks[tabCatId] || []).find(b => b.id === id); const e = catEdits[id]; return orig && (orig.label !== e.label || orig.content !== e.content); }); return (
                 <div key={tabCatId} onClick={() => setBlockEditorActiveTab(tabCatId)}
-                  style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 14px", cursor: "pointer", borderBottom: isActive ? `2px solid ${tc.color}` : "2px solid transparent", color: isActive ? C.text : C.dim, fontSize: 14, fontWeight: isActive ? 700 : 500, transition: "all 0.12s", flexShrink: 0, position: "relative" }}>
-                  <tc.Icon size={15} color={isActive ? tc.color : C.dim} />
+                  style={{ display: "flex", alignItems: "center", gap: 4, padding: "7px 10px", cursor: "pointer", borderBottom: isActive ? `2px solid ${tc.color}` : "2px solid transparent", color: isActive ? C.text : C.dim, fontSize: 12, fontWeight: isActive ? 700 : 500, transition: "all 0.12s", flexShrink: 0 }}>
+                  <tc.Icon size={13} color={isActive ? tc.color : C.dim} />
                   <span>{tc.label}</span>
-                  {hasChanges && <span style={{ width: 6, height: 6, borderRadius: 3, background: tc.color, flexShrink: 0 }} />}
-                  <span onClick={e => { e.stopPropagation(); closeBlockEditorTab(tabCatId); }} style={{ color: C.dim, cursor: "pointer", padding: 2, display: "flex", marginLeft: 2, borderRadius: 4 }} onMouseEnter={e => e.currentTarget.style.background = `${C.dim}20`} onMouseLeave={e => e.currentTarget.style.background = "none"}><X size={13} /></span>
+                  {hasChanges && <span style={{ width: 5, height: 5, borderRadius: 3, background: tc.color, flexShrink: 0 }} />}
+                  <span onClick={e => { e.stopPropagation(); closeBlockEditorTab(tabCatId); }} style={{ color: C.dim, cursor: "pointer", padding: 1, display: "flex", marginLeft: 1, borderRadius: 3 }} onMouseEnter={e => e.currentTarget.style.background = `${C.dim}20`} onMouseLeave={e => e.currentTarget.style.background = "none"}><X size={11} /></span>
                 </div>
               ); })}
               {/* Add tab button */}
               {blockEditorTabs.length < Object.keys(CAT).length && (
                 <div style={{ position: "relative", flexShrink: 0 }}>
-                  <button onClick={e => { const menu = e.currentTarget.nextSibling; menu.style.display = menu.style.display === "block" ? "none" : "block"; }} style={{ background: "none", border: "none", color: C.dim, cursor: "pointer", padding: "10px 8px", display: "flex", alignItems: "center" }}><Plus size={16} /></button>
-                  <div style={{ display: "none", position: "absolute", top: "100%", left: 0, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: 6, zIndex: 10, boxShadow: `0 8px 24px ${isDark ? "rgba(0,0,0,0.4)" : "rgba(0,0,0,0.12)"}`, minWidth: 160 }}>
+                  <button onClick={e => { const menu = e.currentTarget.nextSibling; menu.style.display = menu.style.display === "block" ? "none" : "block"; }} style={{ background: "none", border: "none", color: C.dim, cursor: "pointer", padding: "7px 6px", display: "flex", alignItems: "center" }}><Plus size={14} /></button>
+                  <div style={{ display: "none", position: "absolute", top: "100%", left: 0, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: 4, zIndex: 300, boxShadow: `0 8px 24px ${isDark ? "rgba(0,0,0,0.5)" : "rgba(0,0,0,0.15)"}`, minWidth: 140 }}>
                     {Object.entries(CAT).filter(([id]) => !blockEditorTabs.includes(id)).map(([id, c]) => (
-                      <button key={id} onClick={e => { openBlockEditor(id); e.currentTarget.parentElement.style.display = "none"; }} style={{ background: "none", border: "none", color: C.text, cursor: "pointer", padding: "8px 12px", display: "flex", alignItems: "center", gap: 8, width: "100%", fontFamily: "inherit", fontSize: 14, borderRadius: 6 }} onMouseEnter={e => e.currentTarget.style.background = `${c.color}15`} onMouseLeave={e => e.currentTarget.style.background = "none"}>
-                        <c.Icon size={15} color={c.color} /><span>{c.label}</span>
+                      <button key={id} onClick={e => { openBlockEditor(id); e.currentTarget.parentElement.style.display = "none"; }} style={{ background: "none", border: "none", color: C.text, cursor: "pointer", padding: "6px 10px", display: "flex", alignItems: "center", gap: 6, width: "100%", fontFamily: "inherit", fontSize: 12, borderRadius: 5 }} onMouseEnter={e => e.currentTarget.style.background = `${c.color}15`} onMouseLeave={e => e.currentTarget.style.background = "none"}>
+                        <c.Icon size={13} color={c.color} /><span>{c.label}</span>
                       </button>
                     ))}
                   </div>
                 </div>
               )}
               <div style={{ flex: 1 }} />
-              <button onClick={closeBlockEditor} style={{ background: "none", border: "none", color: C.dim, cursor: "pointer", padding: 8, display: "flex", flexShrink: 0 }}><X size={18} /></button>
+              <button onClick={closeBlockEditor} style={{ background: "none", border: "none", color: C.dim, cursor: "pointer", padding: 6, display: "flex", flexShrink: 0 }}><X size={15} /></button>
             </div>
 
             {/* Active tab content */}
-            <div style={{ flex: 1, overflow: "auto", padding: isMobile ? 16 : 24 }}>
-              {(() => { const catId = blockEditorActiveTab; const cat = CAT[catId] || CAT.role; const existingBlocks = userBlocks[catId] || []; const catDrafts = blockEditorDrafts[catId] || []; const catEdits = blockEditorEdits[catId] || {}; return (
+            <div style={{ flex: 1, overflow: "auto", padding: isMobile ? "10px 12px" : "14px 18px" }}>
+              {(() => { const catId = blockEditorActiveTab; const cat = CAT[catId] || CAT.role; const existingBlocks = userBlocks[catId] || []; const catDrafts = blockEditorDrafts[catId] || []; const catEdits = blockEditorEdits[catId] || {}; const compInp = { ...inp, padding: "7px 10px", fontSize: 13 }; return (
                 <>
-                  <p style={{ margin: "0 0 16px", fontSize: 13, color: C.dim }}>{"{"}項目名{"}"} → あとから入力できる穴埋め箇所になります</p>
+                  <p style={{ margin: "0 0 10px", fontSize: 11, color: C.dim }}>{"{"}項目名{"}"} → あとから入力できる穴埋め箇所になります</p>
 
                   {existingBlocks.length > 0 && (
-                    <div style={{ marginBottom: 20 }}>
-                      <h3 style={{ margin: 0, fontSize: 13, fontWeight: 600, color: C.dim, marginBottom: 10 }}>既存ブロック ({existingBlocks.length})</h3>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                    <div style={{ marginBottom: 14 }}>
+                      <h3 style={{ margin: 0, fontSize: 11, fontWeight: 600, color: C.dim, marginBottom: 6 }}>既存ブロック ({existingBlocks.length})</h3>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                         {existingBlocks.map(block => { const e = catEdits[block.id] || { label: block.label, content: block.content }; return (
-                          <div key={block.id} style={{ background: C.bg, borderRadius: 12, padding: 16, border: `1px solid ${C.border}` }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                              <input value={e.label} onChange={ev => setBlockEditorEdits(p => ({ ...p, [catId]: { ...catEdits, [block.id]: { ...e, label: ev.target.value } } }))} placeholder="ブロック名" style={{ ...inp, flex: 1, fontWeight: 600 }} />
-                              <button onClick={() => deleteCustomBlock(catId, block.id)} style={{ background: "none", border: "none", color: C.dim, cursor: "pointer", padding: 6, display: "flex", borderRadius: 6 }} title="削除"><Trash2 size={16} /></button>
+                          <div key={block.id} style={{ background: C.bg, borderRadius: 8, padding: 10, border: `1px solid ${C.border}` }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                              <input value={e.label} onChange={ev => setBlockEditorEdits(p => ({ ...p, [catId]: { ...catEdits, [block.id]: { ...e, label: ev.target.value } } }))} placeholder="ブロック名" style={{ ...compInp, flex: 1, fontWeight: 600 }} />
+                              <button onClick={() => deleteCustomBlock(catId, block.id)} style={{ background: "none", border: "none", color: C.dim, cursor: "pointer", padding: 4, display: "flex", borderRadius: 4 }} title="削除"><Trash2 size={14} /></button>
                             </div>
-                            <textarea value={e.content} onChange={ev => setBlockEditorEdits(p => ({ ...p, [catId]: { ...catEdits, [block.id]: { ...e, content: ev.target.value } } }))} placeholder={"テンプレートを入力\n{項目名}で穴埋め箇所を作れます"} style={{ ...inp, minHeight: 100, resize: "vertical", fontFamily: "monospace", fontSize: 14 }} />
+                            <textarea value={e.content} onChange={ev => setBlockEditorEdits(p => ({ ...p, [catId]: { ...catEdits, [block.id]: { ...e, content: ev.target.value } } }))} placeholder={"テンプレートを入力\n{項目名}で穴埋め箇所を作れます"} style={{ ...compInp, minHeight: 80, resize: "vertical", fontFamily: "monospace", fontSize: 12 }} />
                           </div>
                         ); })}
                       </div>
                     </div>
                   )}
 
-                  <div style={{ marginBottom: 8 }}>
-                    <h3 style={{ margin: 0, fontSize: 13, fontWeight: 600, color: C.dim, marginBottom: 10 }}>新規ブロック</h3>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  <div style={{ marginBottom: 6 }}>
+                    <h3 style={{ margin: 0, fontSize: 11, fontWeight: 600, color: C.dim, marginBottom: 6 }}>新規ブロック</h3>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                       {catDrafts.map((draft, idx) => (
-                        <div key={draft._draftId} style={{ background: C.bg, borderRadius: 12, padding: 16, border: `1px dashed ${cat.color}44` }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                            <input value={draft.label} onChange={ev => setBlockEditorDrafts(p => ({ ...p, [catId]: catDrafts.map((d, i) => i === idx ? { ...d, label: ev.target.value } : d) }))} placeholder="ブロック名" style={{ ...inp, flex: 1, fontWeight: 600 }} />
-                            {catDrafts.length > 1 && <button onClick={() => setBlockEditorDrafts(p => ({ ...p, [catId]: catDrafts.filter((_, i) => i !== idx) }))} style={{ background: "none", border: "none", color: C.dim, cursor: "pointer", padding: 6, display: "flex", borderRadius: 6 }} title="削除"><X size={16} /></button>}
+                        <div key={draft._draftId} style={{ background: C.bg, borderRadius: 8, padding: 10, border: `1px dashed ${cat.color}44` }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                            <input value={draft.label} onChange={ev => setBlockEditorDrafts(p => ({ ...p, [catId]: catDrafts.map((d, i) => i === idx ? { ...d, label: ev.target.value } : d) }))} placeholder="ブロック名" style={{ ...compInp, flex: 1, fontWeight: 600 }} />
+                            {catDrafts.length > 1 && <button onClick={() => setBlockEditorDrafts(p => ({ ...p, [catId]: catDrafts.filter((_, i) => i !== idx) }))} style={{ background: "none", border: "none", color: C.dim, cursor: "pointer", padding: 4, display: "flex", borderRadius: 4 }} title="削除"><X size={14} /></button>}
                           </div>
-                          <textarea value={draft.content} onChange={ev => setBlockEditorDrafts(p => ({ ...p, [catId]: catDrafts.map((d, i) => i === idx ? { ...d, content: ev.target.value } : d) }))} placeholder={"テンプレートを入力\n{項目名}で穴埋め箇所を作れます"} style={{ ...inp, minHeight: 100, resize: "vertical", fontFamily: "monospace", fontSize: 14 }} />
+                          <textarea value={draft.content} onChange={ev => setBlockEditorDrafts(p => ({ ...p, [catId]: catDrafts.map((d, i) => i === idx ? { ...d, content: ev.target.value } : d) }))} placeholder={"テンプレートを入力\n{項目名}で穴埋め箇所を作れます"} style={{ ...compInp, minHeight: 80, resize: "vertical", fontFamily: "monospace", fontSize: 12 }} />
                         </div>
                       ))}
                     </div>
                     <button onClick={() => setBlockEditorDrafts(p => ({ ...p, [catId]: [...catDrafts, { _draftId: uid(), label: "", content: "" }] }))}
-                      style={{ background: "transparent", border: `1px dashed ${C.border}`, borderRadius: 10, padding: 12, cursor: "pointer", color: C.dim, fontSize: 14, fontWeight: 600, fontFamily: "inherit", width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 10, transition: "color 0.12s" }}
+                      style={{ background: "transparent", border: `1px dashed ${C.border}`, borderRadius: 8, padding: 8, cursor: "pointer", color: C.dim, fontSize: 12, fontWeight: 600, fontFamily: "inherit", width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 4, marginTop: 8, transition: "color 0.12s" }}
                       onMouseEnter={e => e.currentTarget.style.color = cat.color} onMouseLeave={e => e.currentTarget.style.color = C.dim}>
-                      <Plus size={16} /> もう1つ追加
+                      <Plus size={13} /> もう1つ追加
                     </button>
                   </div>
                 </>
@@ -661,9 +661,9 @@ export default function PromptBuilder() {
             </div>
 
             {/* Footer buttons */}
-            <div style={{ borderTop: `1px solid ${C.border}`, padding: isMobile ? "12px 16px" : "14px 24px", display: "flex", gap: 10, flexShrink: 0 }}>
-              <button onClick={() => saveBlockEditorTab(blockEditorActiveTab)} style={{ ...pb, flex: 1, background: (CAT[blockEditorActiveTab] || CAT.role).color, marginTop: 0, fontSize: 15, padding: "12px 0" }}>このタブを保存</button>
-              {blockEditorTabs.length > 1 && <button onClick={saveAllBlockEditorTabs} style={{ ...pb, flex: 1, background: C.accent, marginTop: 0, fontSize: 15, padding: "12px 0" }}>すべて保存</button>}
+            <div style={{ borderTop: `1px solid ${C.border}`, padding: isMobile ? "8px 12px" : "10px 18px", display: "flex", gap: 8, flexShrink: 0 }}>
+              <button onClick={() => saveBlockEditorTab(blockEditorActiveTab)} style={{ ...pb, flex: 1, background: (CAT[blockEditorActiveTab] || CAT.role).color, marginTop: 0, fontSize: 13, padding: "9px 0" }}>このタブを保存</button>
+              {blockEditorTabs.length > 1 && <button onClick={saveAllBlockEditorTabs} style={{ ...pb, flex: 1, background: C.accent, marginTop: 0, fontSize: 13, padding: "9px 0" }}>すべて保存</button>}
             </div>
           </div>
         </div>
